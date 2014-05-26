@@ -17,17 +17,17 @@
  *
  * Inspired by cbpScroller.js (c) 2014 Codrops
  *
- * Licensted under the MIT license
+ * Licensed under the MIT license
  * http://www.opensource.org/licenses/mit-license.php
  */
-
 
 window.scrollReveal = (function( window ) {
 
   'use strict';
 
-  var styleId,
-      requestAnimFrame;
+var requestAnimFrame,
+    styleId,
+    self;
 
   /**
    * RequestAnimationFrame polyfill
@@ -46,13 +46,14 @@ window.scrollReveal = (function( window ) {
 
   function scrollReveal( options ) {
 
-      this.docElem = window.document.documentElement;
-      this.options = this.extend(this.defaults, options);
+      self = this;
+      self.docElem = window.document.documentElement;
+      self.options = self.extend( self.defaults, options );
 
       styleId = 1;
-      this.styleBank = {};
+      self.styleBank = {};
 
-      if (this.options.init == true) this.init();
+      if ( self.options.init == true ) self.init();
   }
 
   scrollReveal.prototype = {
@@ -63,85 +64,92 @@ window.scrollReveal = (function( window ) {
       move:   '24px',
       over:   '0.66s',
       easing: 'ease-in-out',
+      opacity: 0,
 
-  //  if 0, the element is considered in the viewport as soon as it enters
-  //  if 1, the element is considered in the viewport when it's fully visible
-      viewportFactor: 0.33,
+      /**
+       * 1, the element is considered in the viewport when it's fully visible
+       * 0, the element is considered in the viewport as soon as it enters
+       */
+     viewportFactor: 0.33,
 
-  // if false, animations occur only once
-  // if true, animations occur each time an element enters the viewport
+      /**
+       * true, animations occur each time an element enters the viewport
+       * false, animations occur only once
+       */
       reset: false,
 
-  // if true, scrollReveal.init() is automaticaly called upon instantiation
+      /**
+       * true, init() is called during instantiation
+       * false, init() must be called manually
+       */
       init: true
     },
 
     /*=============================================================================*/
 
-    init: function () {
+    init: function() {
 
-      var id,
-          self;
+      var id;
 
-     /**
-      * Check DOM for the data-scrollReveal attribute
-      * and initialize all found elements.
-      */
-      self = this;
-      this.scrolled = false;
-      this.elems = Array.prototype.slice.call(this.docElem.querySelectorAll('[data-scroll-reveal]'));
-      this.elems.forEach(function (el, i) {
+      /**
+       * Check DOM for the data-scrollReveal attribute
+       */
+      self.scrolled = false;
+      self.elems = Array.prototype.slice.call( self.docElem.querySelectorAll( '[data-scroll-reveal]' ) );
 
-    //  Capture original style attribute
-        id = el.getAttribute("data-scroll-reveal-id");
-        if (!id) {
-            id = styleId++;
-            el.setAttribute("data-scroll-reveal-id", id);
+      /**
+       * Build style bank
+       */
+      self.elems.forEach( function( el, i ) {
+
+        id = el.getAttribute( 'data-sr-style-id' );
+        if ( !id ) {
+          id = styleId++;
+          el.setAttribute( 'data-sr-style-id', id );
         }
-        if (!self.styleBank[id]) {
-          self.styleBank[id] = el.getAttribute('style');
+        if ( !self.styleBank[ id ] ) {
+          self.styleBank[ id ] = el.getAttribute( 'style' );
         }
 
-        self.update(el);
+        self.update( el );
       });
 
-      var scrollHandler = function (e) {
+      var scrollHandler = function( e ) {
         // No changing, exit
-        if (!self.scrolled) {
+        if ( !self.scrolled ) {
           self.scrolled = true;
-          requestAnimFrame(function () {
-            self._scrollPage
+          requestAnimFrame(function() {
+            self._scrollPage();
           });
         }
       };
 
-      var resizeHandler = function () {
+      var resizeHandler = function() {
 
     //  If we’re still waiting for settimeout, reset the timer.
-        if (self.resizeTimeout) {
-          clearTimeout(self.resizeTimeout);
+        if ( self.resizeTimeout ) {
+          clearTimeout( self.resizeTimeout );
         }
         function delayed() {
           self._scrollPage();
           self.resizeTimeout = null;
         }
-        self.resizeTimeout = setTimeout(delayed, 200);
+        self.resizeTimeout = setTimeout( delayed, 200 );
       };
 
       // captureScroll
-      window.addEventListener('scroll', scrollHandler, false);
-      window.addEventListener('resize', resizeHandler, false);
+      window.addEventListener( 'scroll', scrollHandler, false );
+      window.addEventListener( 'resize', resizeHandler, false );
     },
 
     /*=============================================================================*/
 
     _scrollPage: function () {
-        var self = this;
 
-        this.elems.forEach(function (el, i) {
-          self.update(el);
+        self.elems.forEach(function( el, i ) {
+          self.update( el );
         });
-        this.scrolled = false;
+        self.scrolled = false;
     },
 
     /*=============================================================================*/
@@ -230,20 +238,26 @@ window.scrollReveal = (function( window ) {
 
     /*=============================================================================*/
 
-    update: function (el) {
+    update: function( el ) {
 
-      var css   = this.genCSS(el);
-      var style = this.styleBank[el.getAttribute("data-scroll-reveal-id")];
+      var css,
+          style;
 
-      if (style != null) style += ";"; else style = "";
+      /**
+       * retrive styles from style bank, or set to empty string
+       */
+      style = self.styleBank[ el.getAttribute( 'data-sr-style-id' ) ];
+      if ( style != null ) style += ';'; else style = '';
 
-      if (!el.getAttribute('data-scroll-reveal-initialized')) {
-        el.setAttribute('style', style + css.initial);
-        el.setAttribute('data-scroll-reveal-initialized', true);
+      css = self.genCSS( el ); /* build the animation styles */
+
+      if ( !el.getAttribute( 'data-sr-initialized' ) ) {
+        el.setAttribute( 'style', style + css.initial );
+        el.setAttribute( 'data-sr-initialized', true );
       }
 
-      if (!this.isElementInViewport(el, this.options.viewportFactor)) {
-        if (this.options.reset) {
+      if (!self.isElementInViewport(el, self.options.viewportFactor)) {
+        if (self.options.reset) {
           el.setAttribute('style', style + css.initial + css.reset);
         }
         return;
@@ -251,13 +265,13 @@ window.scrollReveal = (function( window ) {
 
       if (el.getAttribute('data-scroll-reveal-complete')) return;
 
-      if (this.isElementInViewport(el, this.options.viewportFactor)) {
+      if (self.isElementInViewport(el, self.options.viewportFactor)) {
         el.setAttribute('style', style + css.target + css.transition);
     //  Without reset enabled, we can safely remove the style tag
     //  to prevent CSS specificy wars with authored CSS.
-        if (!this.options.reset) {
+        if (!self.options.reset) {
           setTimeout(function () {
-            if (style != "") {
+            if (style != '') {
               el.setAttribute('style', style);
             } else {
               el.removeAttribute('style');
@@ -272,32 +286,32 @@ window.scrollReveal = (function( window ) {
     /*=============================================================================*/
 
     genCSS: function (el) {
-      var parsed = this.parseLanguage(el),
+      var parsed = self.parseLanguage(el),
           enter,
           axis;
 
       if (parsed.enter) {
 
-        if (parsed.enter == "top" || parsed.enter == "bottom") {
+        if (parsed.enter == 'top' || parsed.enter == 'bottom') {
           enter = parsed.enter;
-          axis = "y";
+          axis = 'y';
         }
 
-        if (parsed.enter == "left" || parsed.enter == "right") {
+        if (parsed.enter == 'left' || parsed.enter == 'right') {
           enter = parsed.enter;
-          axis = "x";
+          axis = 'x';
         }
 
       } else {
 
-        if (this.options.enter == "top" || this.options.enter == "bottom") {
-          enter = this.options.enter
-          axis = "y";
+        if (self.options.enter == 'top' || self.options.enter == 'bottom') {
+          enter = self.options.enter
+          axis = 'y';
         }
 
-        if (this.options.enter == "left" || this.options.enter == "right") {
-          enter = this.options.enter
-          axis = "x";
+        if (self.options.enter == 'left' || self.options.enter == 'right') {
+          enter = self.options.enter
+          axis = 'x';
         }
       }
 
@@ -311,14 +325,14 @@ window.scrollReveal = (function( window ) {
           parsed.move = "-" + parsed.move;
         }
         else {
-          parsed.move = "-" + this.options.move;
+          parsed.move = "-" + self.options.move;
         }
       }
 
-      var dist   = parsed.move    || this.options.move,
-          dur    = parsed.over    || this.options.over,
-          delay  = parsed.after   || this.options.after,
-          easing = parsed.easing  || this.options.easing;
+      var dist   = parsed.move    || self.options.move,
+          dur    = parsed.over    || self.options.over,
+          delay  = parsed.after   || self.options.after,
+          easing = parsed.easing  || self.options.easing;
 
       var transition = "-webkit-transition: -webkit-transform " + dur + " " + easing + " " + delay + ",  opacity " + dur + " " + easing + " " + delay + ";" +
                                "transition: transform " + dur + " " + easing + " " + delay + ", opacity " + dur + " " + easing + " " + delay + ";" +
@@ -348,7 +362,7 @@ window.scrollReveal = (function( window ) {
     },
 
     getViewportH : function () {
-      var client = this.docElem['clientHeight'],
+      var client = self.docElem['clientHeight'],
         inner = window['innerHeight'];
 
       return (client < inner) ? inner : client;
@@ -375,9 +389,9 @@ window.scrollReveal = (function( window ) {
 
     isElementInViewport : function(el, h) {
       var scrolled = window.pageYOffset,
-          viewed = scrolled + this.getViewportH(),
+          viewed = scrolled + self.getViewportH(),
           elH = el.offsetHeight,
-          elTop = this.getOffset(el).top,
+          elTop = self.getOffset(el).top,
           elBottom = elTop + elH,
           h = h || 0;
 
