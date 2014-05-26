@@ -49,16 +49,27 @@ var requestAnimFrame,
 
       self = this;
       self.docElem = window.document.documentElement;
-      self.config = self._extend( self.defaults, userConfig );
+
+      /**
+       * prepare the style bank
+       */
       styleId = 1;
       self.styleBank = {};
 
       /**
-       * check for a mobile browsers, and whether mobile support is enabled
+       * build the config object
+       */
+      self.config = self._extend( self.defaults, userConfig );
+
+      /**
+       * check for a mobile browsers, and pull the plug if on
+       * on a mobile device and config.mobile set to false
        */
       self.isMobile = self.checkMobile();
-      if ( self.isMobile && !self.config.mobile ) { return }; /* pull the plug */
-
+      if ( self.isMobile && !self.config.mobile ) { return }; /* Goodbye… */
+      /**
+       * otherwise, get things moving
+       */
       if ( self.config.init == true ) self.init();
   }
 
@@ -100,10 +111,10 @@ var requestAnimFrame,
     },
 
     /**
-     * the init() method is what kicks everything into motion. if you‘re looking to
+     * the init() method is what kicks everything into motion. If you‘re looking to
      * use other JavaScript libraries with scrollReveal, especially ones that manipulate
-     * the DOM, manually calling the init() causes scrollReveal to look for DOM elements
-     * with the [data-scroll-reveal] attribute — and kick off any pertinent animations
+     * the DOM, manually calling the init() method will allow you to capture and prepare
+     * any new elements (ie. from a template, or AJAX) for scrollReveal animation.
      */
     init: function() {
 
@@ -111,13 +122,13 @@ var requestAnimFrame,
       self.elems = Array.prototype.slice.call( self.docElem.querySelectorAll( '[data-scroll-reveal]' ) );
       self._updateStyleBank();
 
-      window.addEventListener( 'scroll', self.eventHandler, false );
-      window.addEventListener( 'resize', self.eventHandler, false );
+      window.addEventListener( 'scroll', self._eventHandler, false );
+      window.addEventListener( 'resize', self._eventHandler, false );
 
       self._updatePage();
     },
 
-    eventHandler: function( e ) {
+    _eventHandler: function( e ) {
       if ( !self.eventBlocked ) {
         self.eventBlocked = true;
         requestAnimFrame(function() {
@@ -129,16 +140,14 @@ var requestAnimFrame,
     /**
      * _updateStyleBank() goes through all scrollReveal elements, and captures
      * the values of any existing style attributes. Storing these values in turn
-     * allows control of CSS rule specificity, without destroying existing styles.
+     * allows control over CSS specificity, without destroying existing styles.
      */
     _updateStyleBank: function() {
 
       var id;
 
       self.elems.forEach( function( el, i ) {
-
         id = el.getAttribute( 'data-sr-style-id' ); /* grab id if exists */
-
         /**
          * if no id found, assign a new one
          */
@@ -146,20 +155,18 @@ var requestAnimFrame,
           id = styleId++;
           el.setAttribute( 'data-sr-style-id', id );
         }
-
         /**
          * confirm entry in style bank
          */
         if ( !self.styleBank[ id ] ) {
           self.styleBank[ id ] = el.getAttribute( 'style' );
         }
-
       });
     },
 
     /**
-     * _updatePage() is the primary callback for events, and is a wrapper
-     * for the update() method, which does most of the heavy lifting.
+     * _updatePage() is the primary event callback, and is a wrapper
+     * for the _update() method, which handles most of the heavy lifting.
      */
     _updatePage: function() {
 
@@ -169,39 +176,43 @@ var requestAnimFrame,
         self.eventBlocked = false;
     },
 
+    _filter: function( words ) {
+
+      var filtered  = [],
+          blacklist = [];
+
+      blacklist = [
+        "from",
+        "the",
+        "and",
+        "then",
+        "but",
+        "with"
+      ];
+
+      /**
+       * check each word in the array
+       * if the value is found in the blacklist, skip it
+       * otherwise, add the word to a new array to be returned
+       */
+      words.forEach(function( word, i ) {
+        if ( blacklist.indexOf( word ) > -1 ) { return; }
+        filtered.push( word );
+      });
+
+      return filtered;
+    },
+
     _parse: function( el ) {
 
-  //  Splits on a sequence of one or more commas or spaces.
-      var words = el.getAttribute('data-scroll-reveal').split(/[, ]+/),
+      var words  = el.getAttribute('data-scroll-reveal').split(/[, ]+/),
           parsed = {};
 
-      function filter( words ) {
-        var ret = [],
-
-            blacklist = [
-              "from",
-              "the",
-              "and",
-              "then",
-              "but",
-              "with"
-            ];
-
-        words.forEach(function( word, i ) {
-          if ( blacklist.indexOf( word ) > -1 ) {
-            return;
-          }
-          ret.push( word );
-        });
-
-        return ret;
-      }
-
-      words = filter( words );
+      words = self._filter( words );
 
       words.forEach(function( word, i ) {
 
-        switch (word) {
+        switch ( word ) {
           case "enter":
             parsed.enter = words[ i + 1 ];
             return;
@@ -295,7 +306,7 @@ var requestAnimFrame,
       }
     },
 
-    _genCSS: function (el) {
+    _genCSS: function( el ) {
       var parsed = self._parse( el ),
           enter,
           axis;
@@ -385,25 +396,26 @@ var requestAnimFrame,
       };
     },
 
-    getViewportH: function () {
+    getViewportH: function() {
       var client = self.docElem['clientHeight'],
         inner = window['innerHeight'];
 
       return (client < inner) ? inner : client;
     },
 
-    getOffset: function(el) {
+    getOffset: function( el ) {
+
       var offsetTop = 0,
           offsetLeft = 0;
 
       do {
-        if (!isNaN(el.offsetTop)) {
+        if ( !isNaN( el.offsetTop ) ) {
           offsetTop += el.offsetTop;
         }
-        if (!isNaN(el.offsetLeft)) {
+        if ( !isNaN( el.offsetLeft ) ) {
           offsetLeft += el.offsetLeft;
         }
-      } while (el = el.offsetParent)
+      } while ( el = el.offsetParent )
 
       return {
         top: offsetTop,
@@ -411,23 +423,23 @@ var requestAnimFrame,
       }
     },
 
-    isElementInViewport: function(el, h) {
+    isElementInViewport: function( el, h ) {
       var scrolled = window.pageYOffset,
           viewed = scrolled + self.getViewportH(),
           elH = el.offsetHeight,
-          elTop = self.getOffset(el).top,
+          elTop = self.getOffset( el ).top,
           elBottom = elTop + elH,
           h = h || 0;
 
-      return (elTop + elH * h) <= viewed
-          && (elBottom) >= scrolled
-          || (el.currentStyle? el.currentStyle : window.getComputedStyle(el, null)).position == 'fixed';
+      return ( elTop + elH * h ) <= viewed
+          && ( elBottom ) >= scrolled
+          || ( el.currentStyle? el.currentStyle : window.getComputedStyle( el, null ) ).position == 'fixed';
     },
 
-    _extend: function (a, b){
-      for (var key in b) {
-        if (b.hasOwnProperty(key)) {
-          a[key] = b[key];
+    _extend: function( a, b ){
+      for ( var key in b ) {
+        if ( b.hasOwnProperty( key ) ) {
+          a[ key ] = b[ key ];
         }
       }
       return a;
@@ -444,4 +456,4 @@ var requestAnimFrame,
   }; // end scrollReveal.prototype
 
   return scrollReveal;
-})(window);
+})( window );

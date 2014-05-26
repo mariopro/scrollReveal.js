@@ -15,127 +15,178 @@
     ___  ___ _ __ ___ | | | |__) |_____   _____  __ _| |  _ ___
    / __|/ __| '__/ _ \| | |  _  // _ \ \ / / _ \/ _` | | | / __|
    \__ \ (__| | | (_) | | | | \ \  __/\ V /  __/ (_| | |_| \__ \
-   |___/\___|_|  \___/|_|_|_|  \_\___| \_/ \___|\__,_|_(_) |___/ v.0.1.2
+   |___/\___|_|  \___/|_|_|_|  \_\___| \_/ \___|\__,_|_(_) |___/ v.0.2.0
                                                         _/ |
                                                        |__/
 
     "Declarative on-scroll reveal animations."
 
-/*=============================================================================
+============================================================================*/
 
-    scrollReveal.js was inspired by cbpScroller.js (c) 2014 Codrops.
+/**
+ * scrollReveal.js v0.2.0 (c) 2014 Julian Lloyd
+ *
+ * Inspired by cbpScroller.js (c) 2014 Codrops
+ *
+ * Licensed under the MIT license
+ * http://www.opensource.org/licenses/mit-license.php
+ */
 
-    Licensed under the MIT license.
-    http://www.opensource.org/licenses/mit-license.php
-
-=============================================================================*/
-
-/*! scrollReveal.js v0.1.2 (c) 2014 Julian Lloyd | MIT license */
-
-/*===========================================================================*/
-
-
-window.scrollReveal = (function (window) {
+window.scrollReveal = (function( window ) {
 
   'use strict';
 
-  function scrollReveal(options) {
+var requestAnimFrame,
+    isMobile,
+    styleId,
+    self;
 
-      this.docElem = window.document.documentElement;
-      this.options = this.extend(this.defaults, options);
-      this.styleBank = [];
+  /**
+   * RequestAnimationFrame polyfill
+   * @function
+   * @private
+   */
+  requestAnimFrame = (function () {
+    return window.requestAnimationFrame        ||
+           window.webkitRequestAnimationFrame  ||
+           window.mozRequestAnimationFrame     ||
 
-      if (this.options.init == true) this.init();
+          function( callback ) {
+            window.setTimeout( callback, 1000 / 60 );
+          };
+  }());
+
+  function scrollReveal( userConfig ) {
+
+      self = this;
+      self.docElem = window.document.documentElement;
+      self.config = self._extend( self.defaults, userConfig );
+      styleId = 1;
+      self.styleBank = {};
+
+      /**
+       * check for a mobile browsers, and whether mobile support is enabled
+       */
+      self.isMobile = self.checkMobile();
+      if ( self.isMobile && !self.config.mobile ) { return }; /* pull the plug */
+
+      if ( self.config.init == true ) self.init();
   }
 
   scrollReveal.prototype = {
 
     defaults: {
-      after:  '0s',
-      enter:  'bottom',
-      move:   '24px',
-      over:   '0.66s',
-      easing: 'ease-in-out',
 
-  //  if 0, the element is considered in the viewport as soon as it enters
-  //  if 1, the element is considered in the viewport when it's fully visible
+      after:  '0s',     /* delay    */
+      enter:  'top',    /* vector   */
+      move:   '0',      /* distance */
+      over:   '0.5s',   /* duration */
+
+      easing: 'ease-out',
+      opacity: 0,
+
+      /**
+       * true, enables scrollReveal on mobile devices
+       * false, disabled scrollReveal on mobile devices
+       */
+      mobile: false,
+
+      /**
+       * 1, the element is considered in the viewport when it's fully visible
+       * 0, the element is considered in the viewport as soon as it enters
+       */
       viewportFactor: 0.33,
 
-  // if false, animations occur only once
-  // if true, animations occur each time an element enters the viewport
+      /**
+       * true, animations occur each time an element enters the viewport
+       * false, animations occur only once
+       */
       reset: false,
 
-  // if true, scrollReveal.init() is automaticaly called upon instantiation
+      /**
+       * true, init() is called during instantiation
+       * false, init() must be called manually
+       */
       init: true
     },
 
-    /*=============================================================================*/
+    /**
+     * the init() method is what kicks everything into motion. if you‘re looking to
+     * use other JavaScript libraries with scrollReveal, especially ones that manipulate
+     * the DOM, manually calling the init() causes scrollReveal to look for DOM elements
+     * with the [data-scroll-reveal] attribute — and kick off any pertinent animations
+     */
+    init: function() {
 
-    init: function () {
+      self.eventBlocked = false;
+      self.elems = Array.prototype.slice.call( self.docElem.querySelectorAll( '[data-scroll-reveal]' ) );
+      self._updateStyleBank();
 
-      this.scrolled = false;
+      window.addEventListener( 'scroll', self.eventHandler, false );
+      window.addEventListener( 'resize', self.eventHandler, false );
 
-      var self = this;
-
-  //  Check DOM for the data-scrollReveal attribute
-  //  and initialize all found elements.
-      this.elems = Array.prototype.slice.call(this.docElem.querySelectorAll('[data-scroll-reveal]'));
-      this.elems.forEach(function (el, i) {
-
-    //  Capture original style attribute
-        if (!self.styleBank[el]) {
-          self.styleBank[el] = el.getAttribute('style');
-        }
-
-        self.update(el);
-      });
-
-      var scrollHandler = function () {
-        if (!self.scrolled) {
-          self.scrolled = true;
-          setTimeout(function () {
-            self._scrollPage();
-          }, 60);
-        }
-      };
-
-      var resizeHandler = function () {
-
-    //  If we’re still waiting for settimeout, reset the timer.
-        if (self.resizeTimeout) {
-          clearTimeout(self.resizeTimeout);
-        }
-        function delayed() {
-          self._scrollPage();
-          self.resizeTimeout = null;
-        }
-        self.resizeTimeout = setTimeout(delayed, 200);
-      };
-
-      window.addEventListener('scroll', scrollHandler, false);
-      window.addEventListener('resize', resizeHandler, false);
+      self._updatePage();
     },
 
-    /*=============================================================================*/
-
-    _scrollPage: function () {
-        var self = this;
-
-        this.elems.forEach(function (el, i) {
-          self.update(el);
+    eventHandler: function( e ) {
+      if ( !self.eventBlocked ) {
+        self.eventBlocked = true;
+        requestAnimFrame(function() {
+          self._updatePage();
         });
-        this.scrolled = false;
+      }
     },
 
-    /*=============================================================================*/
+    /**
+     * _updateStyleBank() goes through all scrollReveal elements, and captures
+     * the values of any existing style attributes. Storing these values in turn
+     * allows control of CSS rule specificity, without destroying existing styles.
+     */
+    _updateStyleBank: function() {
 
-    parseLanguage: function (el) {
+      var id;
+
+      self.elems.forEach( function( el, i ) {
+
+        id = el.getAttribute( 'data-sr-style-id' ); /* grab id if exists */
+
+        /**
+         * if no id found, assign a new one
+         */
+        if ( !id ) {
+          id = styleId++;
+          el.setAttribute( 'data-sr-style-id', id );
+        }
+
+        /**
+         * confirm entry in style bank
+         */
+        if ( !self.styleBank[ id ] ) {
+          self.styleBank[ id ] = el.getAttribute( 'style' );
+        }
+
+      });
+    },
+
+    /**
+     * _updatePage() is the primary callback for events, and is a wrapper
+     * for the update() method, which does most of the heavy lifting.
+     */
+    _updatePage: function() {
+
+        self.elems.forEach(function( el, i ) {
+          self._update( el );
+        });
+        self.eventBlocked = false;
+    },
+
+    _parse: function( el ) {
 
   //  Splits on a sequence of one or more commas or spaces.
       var words = el.getAttribute('data-scroll-reveal').split(/[, ]+/),
           parsed = {};
 
-      function filter (words) {
+      function filter( words ) {
         var ret = [],
 
             blacklist = [
@@ -147,27 +198,27 @@ window.scrollReveal = (function (window) {
               "with"
             ];
 
-        words.forEach(function (word, i) {
-          if (blacklist.indexOf(word) > -1) {
+        words.forEach(function( word, i ) {
+          if ( blacklist.indexOf( word ) > -1 ) {
             return;
           }
-          ret.push(word);
+          ret.push( word );
         });
 
         return ret;
       }
 
-      words = filter(words);
+      words = filter( words );
 
-      words.forEach(function (word, i) {
+      words.forEach(function( word, i ) {
 
         switch (word) {
           case "enter":
-            parsed.enter = words[i + 1];
+            parsed.enter = words[ i + 1 ];
             return;
 
           case "after":
-            parsed.after = words[i + 1];
+            parsed.after = words[ i + 1 ];
             return;
 
           case "wait":
@@ -210,77 +261,78 @@ window.scrollReveal = (function (window) {
       return parsed;
     },
 
+    _update: function( el ) {
 
-    /*=============================================================================*/
+      var css,
+          style;
 
-    update: function (el) {
+      /**
+       * retrive styles from style bank, or set to empty string
+       */
+      style = self.styleBank[ el.getAttribute( 'data-sr-style-id' ) ];
+      if ( style != null ) style += ';'; else style = '';
 
-      var css   = this.genCSS(el);
-      var style = this.styleBank[el];
+      css = self._genCSS( el ); /* build the animation styles */
 
-      if (style != null) style += ";"; else style = "";
-
-      if (!el.getAttribute('data-scroll-reveal-initialized')) {
-        el.setAttribute('style', style + css.initial);
-        el.setAttribute('data-scroll-reveal-initialized', true);
+      if ( !el.getAttribute( 'data-sr-initialized' ) ) {
+        el.setAttribute( 'style', style + css.initial );
+        el.setAttribute( 'data-sr-initialized', true );
       }
 
-      if (!this.isElementInViewport(el, this.options.viewportFactor)) {
-        if (this.options.reset) {
-          el.setAttribute('style', style + css.initial + css.reset);
+      if ( !self.isElementInViewport( el, self.config.viewportFactor ) ) {
+        if ( self.config.reset ) {
+          el.setAttribute( 'style', style + css.initial + css.reset );
         }
         return;
       }
 
-      if (el.getAttribute('data-scroll-reveal-complete')) return;
+      if ( el.getAttribute('data-scroll-reveal-complete' ) ) return;
 
-      if (this.isElementInViewport(el, this.options.viewportFactor)) {
-        el.setAttribute('style', style + css.target + css.transition);
+      if ( self.isElementInViewport( el, self.config.viewportFactor ) ) {
+        el.setAttribute( 'style', style + css.target + css.transition );
     //  Without reset enabled, we can safely remove the style tag
     //  to prevent CSS specificy wars with authored CSS.
-        if (!this.options.reset) {
+        if ( !self.config.reset ) {
           setTimeout(function () {
-            if (style != "") {
-              el.setAttribute('style', style);
+            if ( style != '' ) {
+              el.setAttribute( 'style', style );
             } else {
-              el.removeAttribute('style');
+              el.removeAttribute( 'style' );
             }
-            el.setAttribute('data-scroll-reveal-complete',true);
-          }, css.totalDuration);
+            el.setAttribute( 'data-scroll-reveal-complete', true );
+          }, css.totalDuration );
         }
       return;
       }
     },
 
-    /*=============================================================================*/
-
-    genCSS: function (el) {
-      var parsed = this.parseLanguage(el),
+    _genCSS: function (el) {
+      var parsed = self._parse( el ),
           enter,
           axis;
 
       if (parsed.enter) {
 
-        if (parsed.enter == "top" || parsed.enter == "bottom") {
+        if (parsed.enter == 'top' || parsed.enter == 'bottom') {
           enter = parsed.enter;
-          axis = "y";
+          axis = 'y';
         }
 
-        if (parsed.enter == "left" || parsed.enter == "right") {
+        if (parsed.enter == 'left' || parsed.enter == 'right') {
           enter = parsed.enter;
-          axis = "x";
+          axis = 'x';
         }
 
       } else {
 
-        if (this.options.enter == "top" || this.options.enter == "bottom") {
-          enter = this.options.enter
-          axis = "y";
+        if (self.config.enter == 'top' || self.config.enter == 'bottom') {
+          enter = self.config.enter
+          axis = 'y';
         }
 
-        if (this.options.enter == "left" || this.options.enter == "right") {
-          enter = this.options.enter
-          axis = "x";
+        if (self.config.enter == 'left' || self.config.enter == 'right') {
+          enter = self.config.enter
+          axis = 'x';
         }
       }
 
@@ -294,33 +346,47 @@ window.scrollReveal = (function (window) {
           parsed.move = "-" + parsed.move;
         }
         else {
-          parsed.move = "-" + this.options.move;
+          parsed.move = "-" + self.config.move;
         }
       }
 
-      var dist   = parsed.move    || this.options.move,
-          dur    = parsed.over    || this.options.over,
-          delay  = parsed.after   || this.options.after,
-          easing = parsed.easing  || this.options.easing;
+      var transition,
+          reset,
+          initial,
+          target,
 
-      var transition = "-webkit-transition: -webkit-transform " + dur + " " + easing + " " + delay + ",  opacity " + dur + " " + easing + " " + delay + ";" +
-                               "transition: transform " + dur + " " + easing + " " + delay + ", opacity " + dur + " " + easing + " " + delay + ";" +
-                      "-webkit-perspective: 1000;" +
-              "-webkit-backface-visibility: hidden;";
+          dist    = parsed.move    || self.config.move,
+          dur     = parsed.over    || self.config.over,
+          delay   = parsed.after   || self.config.after,
+          easing  = parsed.easing  || self.config.easing,
+          opacity = parsed.opacity || self.config.opacity;
 
-  //  The same as transition, but removing the delay for elements fading out.
-      var reset = "-webkit-transition: -webkit-transform " + dur + " " + easing + " 0s,  opacity " + dur + " " + easing + " " + delay + ";" +
-                          "transition: transform " + dur + " " + easing + " 0s,  opacity " + dur + " " + easing + " " + delay + ";" +
-                 "-webkit-perspective: 1000;" +
-         "-webkit-backface-visibility: hidden;";
+      /**
+       * disable delay on mobile devices, until scroll and/or touchmove events
+       * better support CSS transitions.
+       */
+      if ( self.isMobile && self.config.mobile ) { delay = 0; }
 
-      var initial = "-webkit-transform: translate" + axis + "(" + dist + ");" +
-                            "transform: translate" + axis + "(" + dist + ");" +
-                              "opacity: 0;";
+      transition = '-webkit-transition: -webkit-transform ' + dur + ' ' + easing + ' ' + delay + ',  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
+                               'transition: transform ' + dur + ' ' + easing + ' ' + delay + ', opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
+                      '-webkit-perspective: 1000;' +
+              '-webkit-backface-visibility: hidden;';
 
-      var target = "-webkit-transform: translate" + axis + "(0);" +
-                           "transform: translate" + axis + "(0);" +
-                             "opacity: 1;";
+      /**
+       * The same as transition, but removing the delay for elements fading out.
+       */
+      reset = '-webkit-transition: -webkit-transform ' + dur + ' ' + easing + ' 0s,  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
+                          'transition: transform ' + dur + ' ' + easing + ' 0s,  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
+                 '-webkit-perspective: 1000;' +
+         '-webkit-backface-visibility: hidden;';
+
+      initial = '-webkit-transform: translate' + axis + '(' + dist + ');' +
+                        'transform: translate' + axis + '(' + dist + ');' +
+                          'opacity: ' + opacity + ';';
+
+      target = '-webkit-transform: translate' + axis + '(0);' +
+                       'transform: translate' + axis + '(0);' +
+                         'opacity: 1;';
       return {
         transition: transition,
         initial: initial,
@@ -330,14 +396,14 @@ window.scrollReveal = (function (window) {
       };
     },
 
-    getViewportH : function () {
-      var client = this.docElem['clientHeight'],
+    getViewportH: function () {
+      var client = self.docElem['clientHeight'],
         inner = window['innerHeight'];
 
       return (client < inner) ? inner : client;
     },
 
-    getOffset : function(el) {
+    getOffset: function(el) {
       var offsetTop = 0,
           offsetLeft = 0;
 
@@ -356,11 +422,11 @@ window.scrollReveal = (function (window) {
       }
     },
 
-    isElementInViewport : function(el, h) {
+    isElementInViewport: function(el, h) {
       var scrolled = window.pageYOffset,
-          viewed = scrolled + this.getViewportH(),
+          viewed = scrolled + self.getViewportH(),
           elH = el.offsetHeight,
-          elTop = this.getOffset(el).top,
+          elTop = self.getOffset(el).top,
           elBottom = elTop + elH,
           h = h || 0;
 
@@ -369,14 +435,23 @@ window.scrollReveal = (function (window) {
           || (el.currentStyle? el.currentStyle : window.getComputedStyle(el, null)).position == 'fixed';
     },
 
-    extend: function (a, b){
+    _extend: function (a, b){
       for (var key in b) {
         if (b.hasOwnProperty(key)) {
           a[key] = b[key];
         }
       }
       return a;
-    }
+    },
+
+    checkMobile: function() {
+
+      var result = false;
+
+      (function(a){if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(a)||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0,4)))result = true})(navigator.userAgent||navigator.vendor||window.opera);
+
+      return result;
+    },
   }; // end scrollReveal.prototype
 
   return scrollReveal;
