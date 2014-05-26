@@ -26,6 +26,7 @@ window.scrollReveal = (function( window ) {
   'use strict';
 
 var requestAnimFrame,
+    isMobile,
     styleId,
     self;
 
@@ -44,33 +45,46 @@ var requestAnimFrame,
           };
   }());
 
-  function scrollReveal( options ) {
+  function scrollReveal( userConfig ) {
 
       self = this;
       self.docElem = window.document.documentElement;
-      self.options = self.extend( self.defaults, options );
-
+      self.config = self._extend( self.defaults, userConfig );
       styleId = 1;
       self.styleBank = {};
 
-      if ( self.options.init == true ) self.init();
+      /**
+       * check for a mobile browsers, and whether mobile support is enabled
+       */
+      self.isMobile = self.checkMobile();
+      if ( self.isMobile && !self.config.mobile ) { return }; /* pull the plug */
+
+      if ( self.config.init == true ) self.init();
   }
 
   scrollReveal.prototype = {
 
     defaults: {
-      after:  '0s',
-      enter:  'bottom',
-      move:   '24px',
-      over:   '0.66s',
-      easing: 'ease-in-out',
+
+      after:  '0s',     /* delay    */
+      enter:  'top',    /* vector   */
+      move:   '0',      /* distance */
+      over:   '0.5s',   /* duration */
+
+      easing: 'ease-out',
       opacity: 0,
+
+      /**
+       * true, enables touch events for mobile device support.
+       * false, disabled scrollReveal on mobile devices.
+       */
+      mobile: true,
 
       /**
        * 1, the element is considered in the viewport when it's fully visible
        * 0, the element is considered in the viewport as soon as it enters
        */
-     viewportFactor: 0.33,
+      viewportFactor: 0.33,
 
       /**
        * true, animations occur each time an element enters the viewport
@@ -85,82 +99,83 @@ var requestAnimFrame,
       init: true
     },
 
-    /*=============================================================================*/
-
+    /**
+     * the init() method is what kicks everything into motion. if you‘re looking to
+     * use other JavaScript libraries with scrollReveal, especially ones that manipulate
+     * the DOM, manually calling the init() causes scrollReveal to look for DOM elements
+     * with the [data-scroll-reveal] attribute — and kick off any pertinent animations
+     */
     init: function() {
+
+      self.eventBlocked = false;
+      self.elems = Array.prototype.slice.call( self.docElem.querySelectorAll( '[data-scroll-reveal]' ) );
+      self._updateStyleBank();
+
+      window.addEventListener( 'scroll', self.eventHandler, false );
+      window.addEventListener( 'resize', self.eventHandler, false );
+
+      self._updatePage();
+    },
+
+    eventHandler: function( e ) {
+      if ( !self.eventBlocked ) {
+        self.eventBlocked = true;
+        requestAnimFrame(function() {
+          self._updatePage();
+        });
+      }
+    },
+
+    /**
+     * _updateStyleBank() goes through all scrollReveal elements, and captures
+     * the values of any existing style attributes. Storing these values in turn
+     * allows control of CSS rule specificity, without destroying existing styles.
+     */
+    _updateStyleBank: function() {
 
       var id;
 
-      /**
-       * Check DOM for the data-scrollReveal attribute
-       */
-      self.scrolled = false;
-      self.elems = Array.prototype.slice.call( self.docElem.querySelectorAll( '[data-scroll-reveal]' ) );
-
-      /**
-       * Build style bank
-       */
       self.elems.forEach( function( el, i ) {
 
-        id = el.getAttribute( 'data-sr-style-id' );
+        id = el.getAttribute( 'data-sr-style-id' ); /* grab id if exists */
+
+        /**
+         * if no id found, assign a new one
+         */
         if ( !id ) {
           id = styleId++;
           el.setAttribute( 'data-sr-style-id', id );
         }
+
+        /**
+         * confirm entry in style bank
+         */
         if ( !self.styleBank[ id ] ) {
           self.styleBank[ id ] = el.getAttribute( 'style' );
         }
 
-        self.update( el );
       });
-
-      var scrollHandler = function( e ) {
-        // No changing, exit
-        if ( !self.scrolled ) {
-          self.scrolled = true;
-          requestAnimFrame(function() {
-            self._scrollPage();
-          });
-        }
-      };
-
-      var resizeHandler = function() {
-
-    //  If we’re still waiting for settimeout, reset the timer.
-        if ( self.resizeTimeout ) {
-          clearTimeout( self.resizeTimeout );
-        }
-        function delayed() {
-          self._scrollPage();
-          self.resizeTimeout = null;
-        }
-        self.resizeTimeout = setTimeout( delayed, 200 );
-      };
-
-      // captureScroll
-      window.addEventListener( 'scroll', scrollHandler, false );
-      window.addEventListener( 'resize', resizeHandler, false );
     },
 
-    /*=============================================================================*/
-
-    _scrollPage: function () {
+    /**
+     * _updatePage() is the primary callback for events, and is a wrapper
+     * for the update() method, which does most of the heavy lifting.
+     */
+    _updatePage: function() {
 
         self.elems.forEach(function( el, i ) {
-          self.update( el );
+          self._update( el );
         });
-        self.scrolled = false;
+        self.eventBlocked = false;
     },
 
-    /*=============================================================================*/
-
-    parseLanguage: function (el) {
+    _parse: function( el ) {
 
   //  Splits on a sequence of one or more commas or spaces.
       var words = el.getAttribute('data-scroll-reveal').split(/[, ]+/),
           parsed = {};
 
-      function filter (words) {
+      function filter( words ) {
         var ret = [],
 
             blacklist = [
@@ -172,27 +187,27 @@ var requestAnimFrame,
               "with"
             ];
 
-        words.forEach(function (word, i) {
-          if (blacklist.indexOf(word) > -1) {
+        words.forEach(function( word, i ) {
+          if ( blacklist.indexOf( word ) > -1 ) {
             return;
           }
-          ret.push(word);
+          ret.push( word );
         });
 
         return ret;
       }
 
-      words = filter(words);
+      words = filter( words );
 
-      words.forEach(function (word, i) {
+      words.forEach(function( word, i ) {
 
         switch (word) {
           case "enter":
-            parsed.enter = words[i + 1];
+            parsed.enter = words[ i + 1 ];
             return;
 
           case "after":
-            parsed.after = words[i + 1];
+            parsed.after = words[ i + 1 ];
             return;
 
           case "wait":
@@ -235,10 +250,7 @@ var requestAnimFrame,
       return parsed;
     },
 
-
-    /*=============================================================================*/
-
-    update: function( el ) {
+    _update: function( el ) {
 
       var css,
           style;
@@ -249,15 +261,15 @@ var requestAnimFrame,
       style = self.styleBank[ el.getAttribute( 'data-sr-style-id' ) ];
       if ( style != null ) style += ';'; else style = '';
 
-      css = self.genCSS( el ); /* build the animation styles */
+      css = self._genCSS( el ); /* build the animation styles */
 
       if ( !el.getAttribute( 'data-sr-initialized' ) ) {
         el.setAttribute( 'style', style + css.initial );
         el.setAttribute( 'data-sr-initialized', true );
       }
 
-      if (!self.isElementInViewport(el, self.options.viewportFactor)) {
-        if (self.options.reset) {
+      if (!self.isElementInViewport(el, self.config.viewportFactor)) {
+        if (self.config.reset) {
           el.setAttribute('style', style + css.initial + css.reset);
         }
         return;
@@ -265,11 +277,11 @@ var requestAnimFrame,
 
       if (el.getAttribute('data-scroll-reveal-complete')) return;
 
-      if (self.isElementInViewport(el, self.options.viewportFactor)) {
+      if (self.isElementInViewport(el, self.config.viewportFactor)) {
         el.setAttribute('style', style + css.target + css.transition);
     //  Without reset enabled, we can safely remove the style tag
     //  to prevent CSS specificy wars with authored CSS.
-        if (!self.options.reset) {
+        if (!self.config.reset) {
           setTimeout(function () {
             if (style != '') {
               el.setAttribute('style', style);
@@ -283,10 +295,8 @@ var requestAnimFrame,
       }
     },
 
-    /*=============================================================================*/
-
-    genCSS: function (el) {
-      var parsed = self.parseLanguage(el),
+    _genCSS: function (el) {
+      var parsed = self._parse( el ),
           enter,
           axis;
 
@@ -304,13 +314,13 @@ var requestAnimFrame,
 
       } else {
 
-        if (self.options.enter == 'top' || self.options.enter == 'bottom') {
-          enter = self.options.enter
+        if (self.config.enter == 'top' || self.config.enter == 'bottom') {
+          enter = self.config.enter
           axis = 'y';
         }
 
-        if (self.options.enter == 'left' || self.options.enter == 'right') {
-          enter = self.options.enter
+        if (self.config.enter == 'left' || self.config.enter == 'right') {
+          enter = self.config.enter
           axis = 'x';
         }
       }
@@ -325,14 +335,14 @@ var requestAnimFrame,
           parsed.move = "-" + parsed.move;
         }
         else {
-          parsed.move = "-" + self.options.move;
+          parsed.move = "-" + self.config.move;
         }
       }
 
-      var dist   = parsed.move    || self.options.move,
-          dur    = parsed.over    || self.options.over,
-          delay  = parsed.after   || self.options.after,
-          easing = parsed.easing  || self.options.easing;
+      var dist   = parsed.move    || self.config.move,
+          dur    = parsed.over    || self.config.over,
+          delay  = parsed.after   || self.config.after,
+          easing = parsed.easing  || self.config.easing;
 
       var transition = "-webkit-transition: -webkit-transform " + dur + " " + easing + " " + delay + ",  opacity " + dur + " " + easing + " " + delay + ";" +
                                "transition: transform " + dur + " " + easing + " " + delay + ", opacity " + dur + " " + easing + " " + delay + ";" +
@@ -361,14 +371,14 @@ var requestAnimFrame,
       };
     },
 
-    getViewportH : function () {
+    getViewportH: function () {
       var client = self.docElem['clientHeight'],
         inner = window['innerHeight'];
 
       return (client < inner) ? inner : client;
     },
 
-    getOffset : function(el) {
+    getOffset: function(el) {
       var offsetTop = 0,
           offsetLeft = 0;
 
@@ -387,7 +397,7 @@ var requestAnimFrame,
       }
     },
 
-    isElementInViewport : function(el, h) {
+    isElementInViewport: function(el, h) {
       var scrolled = window.pageYOffset,
           viewed = scrolled + self.getViewportH(),
           elH = el.offsetHeight,
@@ -400,14 +410,23 @@ var requestAnimFrame,
           || (el.currentStyle? el.currentStyle : window.getComputedStyle(el, null)).position == 'fixed';
     },
 
-    extend: function (a, b){
+    _extend: function (a, b){
       for (var key in b) {
         if (b.hasOwnProperty(key)) {
           a[key] = b[key];
         }
       }
       return a;
-    }
+    },
+
+    checkMobile: function() {
+
+      var result = false;
+
+      (function(a){if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(a)||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0,4)))result = true})(navigator.userAgent||navigator.vendor||window.opera);
+
+      return result;
+    },
   }; // end scrollReveal.prototype
 
   return scrollReveal;
