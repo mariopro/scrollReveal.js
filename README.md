@@ -1,77 +1,83 @@
 #scrollReveal.js
-A simple way to create and maintain how elements fade in, triggered when they enter the viewport. An open-source experiment from [@JulianLloyd](https://twitter.com/julianlloyd).
-
 [![scrollReveal version](https://badge.fury.io/gh/julianlloyd%2FscrollReveal.js.png)](http://badge.fury.io/gh/julianlloyd%2FscrollReveal.js)
-***
-####**[→ View Demo ←](http://scrollrevealjs.org/)**
-***
+
+### Easily reveal elements as they enter the viewport.
+
+ - Developed for modern browsers
+ - **Only 4.1 KB** minified
+ - Made with ♥ by [Julian Lloyd](https://twitter.com/julianlloyd)
+
+### **[See it in action!](http://scrollrevealjs.org/)**
+What’s new? See the **[Change Log](https://github.com/julianlloyd/scrollReveal.js/blob/master/CHANGELOG.md)**
+<br><br><br><br>
 Installation
 ------------
-> **Disclaimer:** scrollReveal.js is in early development, and breaking changes will likely occur in future updates. Before updating, please refer to the [CHANGELOG](https://github.com/julianlloyd/scrollReveal.js/blob/master/CHANGELOG.md) for details.
-
-#### Download
-[master.zip](https://github.com/julianlloyd/scrollReveal.js/archive/master.zip)
-
-#### GitHub
-`git clone https://github.com/julianlloyd/scrollReveal.js.git`
-
-#### Bower
-`bower install scrollReveal.js`
-
-***
-Once you have a copy of `scrollReveal.js`, place it in your JavaScript folder and include the following JavaScript just before the closing `</body>` tag.
 
 
+Download and unzip [master.zip](https://github.com/julianlloyd/scrollReveal.js/archive/master.zip) and copy `scrollReveal.min.js` into your JavaScript directory. Include the file in your project, and instantiate a new scrollReveal object.
+
+*Example:*
 ```html
-  <script src='{your_JavaScript_path}/scrollReveal.js'></script>
+  <script src='/js/scrollReveal.min.js'></script>
   <script>
 
       window.scrollReveal = new scrollReveal();
 
   </script>
+</body>
 ```
+
+#### Alternate Methods
+- GitHub — `git clone https://github.com/julianlloyd/scrollReveal.js.git`
+- Bower — `bower install scrollReveal.js`
+<br><br><br><br>
 Basic Usage
 -----------
-By adding a `data-scroll-reveal` attribute to an element, it will automatically be revealed (using default values) as soon as the element is within the viewport:
+Just add a `data-scroll-reveal` attribute to your element(s), and scrollReveal.js will automatically reveal them as they enter the viewport.
+
+*Example:*
 ```html
-<!-- Reveal using defaults. -->
+<!-- Using scrollReveal.js with defaults: -->
 <div data-scroll-reveal> Hello world! </div>
 ```
-**But wait!** It’s more fun if you define your own reveal animation parameters, which you can do using using natural, declarative language:
+
+**But wait…** It’s more fun if you define your own reveal animations, which you can do using using natural, declarative language.
+
+*Example:*
 ```html
-<!-- Reveal using custom parameters. -->
+<!-- Reveal using custom parameters: -->
 <div data-scroll-reveal="enter left and move 50px over 1.33s"> Foo </div>
 <div data-scroll-reveal="enter from the bottom after 1s"> Bar </div>
 <div data-scroll-reveal="wait 2.5s and then ease-in-out 100px"> Baz </div>
 ```
-
-Getting Started
----------------
 What you enter into the `data-scroll-reveal` attribute is parsed for specific words:
 
-- **keywords** that expect to be followed by a **value**.<br><br>
+- **keywords** that expect to be followed by a **value**.
 - **fillers** as natural language sugar. (optional)
 
+These are detailed in the next section.
+<br><br><br><br>
+Getting Started
+---------------
 #### Keywords and Values
-These specific **keyword** / **value** pairs allow you to describe basic reveal animation behavior.
-***
-**keyword:** `enter` — Controls the vector origin of your reveal animation.<br>
+<br><br>
+**keyword:** `enter` — Controls the vector origin of your animation.
 **value:** `top` | `right` | `bottom` | `left`<br><br>
 *Example:*
 ```html
-<!-- Reveal your element with a downward motion. -->
+<!-- Reveal your element with a downward motion: -->
 <div data-scroll-reveal='enter top'> Foo </div>
 ```
-***
-**keyword:** `move` — The distance your revealing element travels.<br>
+<br><br><br><br>
+**keyword:** `move` — Controls the distance your element moves during animation.<br>
 **value:** [ integer ]px.
 
 *Example:*
 ```html
 <div data-scroll-reveal='move 24px'> Bar </div>
 ```
-***
-**keyword:** `over` — The duration of your reveal animation.<br>
+<br><br><br><br>
+**keyword:** `over` — Controls the duration of your animation.<br>
 **value:** [ decimal ]s
 
 
@@ -79,29 +85,30 @@ These specific **keyword** / **value** pairs allow you to describe basic reveal 
 ```html
 <div data-scroll-reveal='over 1.66s'> Baz </div>
 ```
-***
-**keyword:** `after/wait` — The duration before your reveal begins.<br>
+<br><br><br><br>
+**keyword:** `after/wait` — Controls the delay before your animation begins.<br>
 **value:** [ decimal ]s
 
 
 *Example:*
 ```html
-<!-- Both are accepted. -->
+<!-- Both are accepted: -->
 <div data-scroll-reveal='after 0.33s'> Mel </div>
 <div data-scroll-reveal='wait 0.33s'> Mel </div>
 ```
+<br><br><br><br>
 
-####Combining Keyword/Value Pairs
-You can easily combine the above pairs to create more dynamic reveal animations.
+#### Combining Keyword/Value Pairs
+Next, by combining the above options, you can create dynamic reveal animation effects.
 
 *Example:*
 ```html
-<div data-scroll-reveal="enter top move 50px"> Foo </div>
-<div data-scroll-reveal="enter top move 50px, after 0.3s"> Bar </div>
-<div data-scroll-reveal="enter top move 50px, after 0.6s"> Baz </div>
-<div data-scroll-reveal="enter top move 50px, after 0.9s"> Mel </div>
+<div data-scroll-reveal='enter top move 50px'> Foo </div>
+<div data-scroll-reveal='enter top move 50px after 0.3s'> Bar </div>
+<div data-scroll-reveal='enter top move 50px after 0.6s'> Baz </div>
+<div data-scroll-reveal='enter top move 50px after 0.9s'> Mel </div>
 ```
-
+<br><br><br><br>
 #### Fillers (optional)
 You can use conjoining filler words for more readable language.
 
@@ -115,77 +122,64 @@ You can use conjoining filler words for more readable language.
 
 *Example*:
 ```html
-<!-- These 4 lines are equivalent. -->
-<div data-scroll-reveal="wait 0.3s, then enter left and move 40px over 2s"> Foo </div>
-<div data-scroll-reveal="enter from the left after 0.3s, move 40px, over 2s"> Bar </div>
-<div data-scroll-reveal="enter left move 40px over 2s after 0.3s"> Baz </div>
-<div data-scroll-reveal="enter left, move 40px, over 2s, wait 0.3s"> Mel </div>
+<!-- These 4 lines are equivalent: -->
+<div data-scroll-reveal='wait 0.3s, then enter left and move 40px over 2s'> Foo </div>
+<div data-scroll-reveal='enter from the left after 0.3s, move 40px, over 2s'> Bar </div>
+<div data-scroll-reveal='enter left move 40px over 2s after 0.3s'> Baz </div>
+<div data-scroll-reveal='enter left, move 40px, over 2s, wait 0.3s'> Mel </div>
 
 ```
+<br><br><br><br>
 Advanced Usage
 --------------
-####Custom defaults
+#### Custom defaults
 You can pass an object to the constructor with your desired default configuration.
 ```html
-  <!-- Everything else. -->
-
-  <script src='{your_JavaScript_path}/scrollReveal.js'></script>
+  <script src='js/scrollReveal.min.js'></script>
   <script>
 
-    // The starting defaults.
     var config = {
-            after: '0s',
-            enter: 'bottom',
-            move: '24px',
-            over: '0.66s',
-            easing: 'ease-in-out',
-            viewportFactor: 0.33,
-            reset: false,
-            init: true
-          };
+        after: '0s',
+        enter: 'bottom',
+        move: '24px',
+        over: '0.66s',
+        easing: 'ease-in-out',
+        viewportFactor: 0.33,
+        reset: false,
+        init: true
+    };
 
     window.scrollReveal = new scrollReveal( config );
 
   </script>
 </body>
 ```
+>**Tip:** The config object above shows the actual scrollReveal default values.
 
-#### Generated HTML
+<br><br><br><br>
 
-The `scrollReveal.init()` method checks the DOM for all elements with `data-scroll-reveal` attributes, and initializes their reveal animations. By default, this method fires on instantiation, but by amending our config object with `init: false`, you can then choose when `scrollReveal.init()` is first fired. (Say, after your DOM is updated.)
+#### Controlling The First Reveal
 
->**Note:** It’s worth noting, you can also call this method at any time to re-check the DOM.
+The `scrollReveal.init()` method checks the DOM for all elements with `data-scroll-reveal` attributes, and initializes their reveal animations. By default, this method fires on instantiation, but by amending our config object with `init: false`, one can then call `scrollReveal.init()` as desired.
 
 *Example:*
 ```html
-  <!-- Everything else. -->
-
-  <script src='{your_JavaScript_path}/scrollReveal.js'></script>
+  <script src='js/scrollReveal.min.js'></script>
   <script>
 
-      var config = {
-              enter: 'bottom',
-              move: '40px',
-              over: '0.16s',
-              reset: true,
-              init: false
-            };
+     window.scrollReveal = new scrollReveal( {init: false} );
 
-      window.scrollReveal = new scrollReveal( config );
+    // Here you might load another library, or query an API...
+    // Now we initialize scrollReveal:
 
-      // Dummy AJAX return object:
-      var data = { newElementHtml: '<div data-scroll-reveal> Foo </div>' }
-
-      var container = document.getElementById('#container');
-          container.innerHTML( data.newElementHTML );
-
-     // Now check for new elements in the DOM…
      scrollReveal.init();
 
   </script>
 </body>
 ```
+>**Tip:** You can call `scrollReveal.init()` more than once, to re-check the DOM.
 
+<br><br><br><br>
 
 #### Viewport Factor
 If set to **0**, the element is considered in the viewport as soon as it enters.<br>
@@ -200,14 +194,17 @@ If set to **1**, the element is considered in the viewport when it is fully visi
     // Your reveal animation triggers after 33% of
     // your element is visible within the viewport.
 ```
+<br><br><br><br>
+#### Replaying Animations
+Using the `reset` keyword makes elements disappear when out of view view, and reveal each time they come into view.
 
-#### Replaying animations
-**Keyword:** `reset` — replay reveal animations every time elements enter the viewport.
+*Example:*
 ```html
-<!-- Note: The reset keyword works by itself. -->
 <div data-scroll-reveal="reset"> Foo </div>
 ```
+>**Note:** This is not a keyword–value pair, `reset` is a uniquely solitary keyword.
 
+<br><br><br><br>
 #### Controlling Easing
 The `move` keyword can be replaced with any one of the following:
 
@@ -220,21 +217,13 @@ The `move` keyword can be replaced with any one of the following:
 ```html
 <div data-scroll-reveal="after 2s, ease-in 32px and reset over .66s"> Foo </div>
 ```
-
-Browser Support
----------------
-scrollReveal.js does not require jQuery, but does rely on [CSS3 transitions](http://caniuse.com/#search=transition) to power its reveal animations; it has been developed exclusively for **modern browser use only**.
+<br><br><br><br>
 
 Contributions
 -------------
-Community feedback and involvement is highly encouraged.
-***
-#### [→ Open Issues ←](https://github.com/julianlloyd/scrollReveal.js/issues?state=open)
-***
+Community feedback and involvement is highly encouraged. (See [Open Issues](https://github.com/julianlloyd/scrollReveal.js/issues?state=open).)
 #### Special Thanks
 scrollReveal.js was inspired by the awesome [cbpScroller.js](http://tympanus.net/codrops/2013/07/18/on-scroll-effect-layout/) by [Mary Lou](https://twitter.com/crnacura). Copyright © 2014 [Codrops](http://tympanus.net/codrops/).
-
-Also, a special thanks to Jeff Escalante ([Jenius](https://github.com/jenius)) for setting up the build process, and his ongoing help with testing and the JavaScript API.
 
 License
 -------

@@ -4,35 +4,53 @@
     ___  ___ _ __ ___ | | | |__) |_____   _____  __ _| |  _ ___
    / __|/ __| '__/ _ \| | |  _  // _ \ \ / / _ \/ _` | | | / __|
    \__ \ (__| | | (_) | | | | \ \  __/\ V /  __/ (_| | |_| \__ \
-   |___/\___|_|  \___/|_|_|_|  \_\___| \_/ \___|\__,_|_(_) |___/ v.0.1.2
+   |___/\___|_|  \___/|_|_|_|  \_\___| \_/ \___|\__,_|_(_) |___/ v.0.2.0
                                                         _/ |
                                                        |__/
 
     "Declarative on-scroll reveal animations."
 
-/*=============================================================================
+============================================================================*/
 
-    scrollReveal.js was inspired by cbpScroller.js (c) 2014 Codrops.
-
-    Licensed under the MIT license.
-    http://www.opensource.org/licenses/mit-license.php
-
-=============================================================================*/
-
-/*! scrollReveal.js v0.1.2 (c) 2014 Julian Lloyd | MIT license */
-
-/*===========================================================================*/
+/**
+ * scrollReveal.js v0.2.0 (c) 2014 Julian Lloyd
+ *
+ * Inspired by cbpScroller.js (c) 2014 Codrops
+ *
+ * Licensted under the MIT license
+ * http://www.opensource.org/licenses/mit-license.php
+ */
 
 
-window.scrollReveal = (function (window) {
+window.scrollReveal = (function( window ) {
 
   'use strict';
 
-  function scrollReveal(options) {
+  var styleId,
+      requestAnimFrame;
+
+  /**
+   * RequestAnimationFrame polyfill
+   * @function
+   * @private
+   */
+  requestAnimFrame = (function () {
+    return window.requestAnimationFrame        ||
+           window.webkitRequestAnimationFrame  ||
+           window.mozRequestAnimationFrame     ||
+
+          function( callback ) {
+            window.setTimeout( callback, 1000 / 60 );
+          };
+  }());
+
+  function scrollReveal( options ) {
 
       this.docElem = window.document.documentElement;
       this.options = this.extend(this.defaults, options);
-      this.styleBank = [];
+
+      styleId = 1;
+      this.styleBank = {};
 
       if (this.options.init == true) this.init();
   }
@@ -62,29 +80,38 @@ window.scrollReveal = (function (window) {
 
     init: function () {
 
+      var id,
+          self;
+
+     /**
+      * Check DOM for the data-scrollReveal attribute
+      * and initialize all found elements.
+      */
+      self = this;
       this.scrolled = false;
-
-      var self = this;
-
-  //  Check DOM for the data-scrollReveal attribute
-  //  and initialize all found elements.
       this.elems = Array.prototype.slice.call(this.docElem.querySelectorAll('[data-scroll-reveal]'));
       this.elems.forEach(function (el, i) {
 
     //  Capture original style attribute
-        if (!self.styleBank[el]) {
-          self.styleBank[el] = el.getAttribute('style');
+        id = el.getAttribute("data-scroll-reveal-id");
+        if (!id) {
+            id = styleId++;
+            el.setAttribute("data-scroll-reveal-id", id);
+        }
+        if (!self.styleBank[id]) {
+          self.styleBank[id] = el.getAttribute('style');
         }
 
         self.update(el);
       });
 
-      var scrollHandler = function () {
+      var scrollHandler = function (e) {
+        // No changing, exit
         if (!self.scrolled) {
           self.scrolled = true;
-          setTimeout(function () {
-            self._scrollPage();
-          }, 60);
+          requestAnimFrame(function () {
+            self._scrollPage
+          });
         }
       };
 
@@ -101,6 +128,7 @@ window.scrollReveal = (function (window) {
         self.resizeTimeout = setTimeout(delayed, 200);
       };
 
+      // captureScroll
       window.addEventListener('scroll', scrollHandler, false);
       window.addEventListener('resize', resizeHandler, false);
     },
@@ -205,7 +233,7 @@ window.scrollReveal = (function (window) {
     update: function (el) {
 
       var css   = this.genCSS(el);
-      var style = this.styleBank[el];
+      var style = this.styleBank[el.getAttribute("data-scroll-reveal-id")];
 
       if (style != null) style += ";"; else style = "";
 
