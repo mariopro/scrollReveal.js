@@ -75,10 +75,10 @@ var requestAnimFrame,
       opacity: 0,
 
       /**
-       * true, enables touch events for mobile device support.
-       * false, disabled scrollReveal on mobile devices.
+       * true, enables scrollReveal on mobile devices
+       * false, disabled scrollReveal on mobile devices
        */
-      mobile: true,
+      mobile: false,
 
       /**
        * 1, the element is considered in the viewport when it's fully visible
@@ -268,28 +268,28 @@ var requestAnimFrame,
         el.setAttribute( 'data-sr-initialized', true );
       }
 
-      if (!self.isElementInViewport(el, self.config.viewportFactor)) {
-        if (self.config.reset) {
-          el.setAttribute('style', style + css.initial + css.reset);
+      if ( !self.isElementInViewport( el, self.config.viewportFactor ) ) {
+        if ( self.config.reset ) {
+          el.setAttribute( 'style', style + css.initial + css.reset );
         }
         return;
       }
 
-      if (el.getAttribute('data-scroll-reveal-complete')) return;
+      if ( el.getAttribute('data-scroll-reveal-complete' ) ) return;
 
-      if (self.isElementInViewport(el, self.config.viewportFactor)) {
-        el.setAttribute('style', style + css.target + css.transition);
+      if ( self.isElementInViewport( el, self.config.viewportFactor ) ) {
+        el.setAttribute( 'style', style + css.target + css.transition );
     //  Without reset enabled, we can safely remove the style tag
     //  to prevent CSS specificy wars with authored CSS.
-        if (!self.config.reset) {
+        if ( !self.config.reset ) {
           setTimeout(function () {
-            if (style != '') {
-              el.setAttribute('style', style);
+            if ( style != '' ) {
+              el.setAttribute( 'style', style );
             } else {
-              el.removeAttribute('style');
+              el.removeAttribute( 'style' );
             }
-            el.setAttribute('data-scroll-reveal-complete',true);
-          }, css.totalDuration);
+            el.setAttribute( 'data-scroll-reveal-complete', true );
+          }, css.totalDuration );
         }
       return;
       }
@@ -339,29 +339,43 @@ var requestAnimFrame,
         }
       }
 
-      var dist   = parsed.move    || self.config.move,
-          dur    = parsed.over    || self.config.over,
-          delay  = parsed.after   || self.config.after,
-          easing = parsed.easing  || self.config.easing;
+      var transition,
+          reset,
+          initial,
+          target,
 
-      var transition = "-webkit-transition: -webkit-transform " + dur + " " + easing + " " + delay + ",  opacity " + dur + " " + easing + " " + delay + ";" +
-                               "transition: transform " + dur + " " + easing + " " + delay + ", opacity " + dur + " " + easing + " " + delay + ";" +
-                      "-webkit-perspective: 1000;" +
-              "-webkit-backface-visibility: hidden;";
+          dist    = parsed.move    || self.config.move,
+          dur     = parsed.over    || self.config.over,
+          delay   = parsed.after   || self.config.after,
+          easing  = parsed.easing  || self.config.easing,
+          opacity = parsed.opacity || self.config.opacity;
 
-  //  The same as transition, but removing the delay for elements fading out.
-      var reset = "-webkit-transition: -webkit-transform " + dur + " " + easing + " 0s,  opacity " + dur + " " + easing + " " + delay + ";" +
-                          "transition: transform " + dur + " " + easing + " 0s,  opacity " + dur + " " + easing + " " + delay + ";" +
-                 "-webkit-perspective: 1000;" +
-         "-webkit-backface-visibility: hidden;";
+      /**
+       * disable delay on mobile devices, until scroll and/or touchmove events
+       * better support CSS transitions.
+       */
+      if ( self.isMobile && self.config.mobile ) { delay = 0; }
 
-      var initial = "-webkit-transform: translate" + axis + "(" + dist + ");" +
-                            "transform: translate" + axis + "(" + dist + ");" +
-                              "opacity: 0;";
+      transition = '-webkit-transition: -webkit-transform ' + dur + ' ' + easing + ' ' + delay + ',  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
+                               'transition: transform ' + dur + ' ' + easing + ' ' + delay + ', opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
+                      '-webkit-perspective: 1000;' +
+              '-webkit-backface-visibility: hidden;';
 
-      var target = "-webkit-transform: translate" + axis + "(0);" +
-                           "transform: translate" + axis + "(0);" +
-                             "opacity: 1;";
+      /**
+       * The same as transition, but removing the delay for elements fading out.
+       */
+      reset = '-webkit-transition: -webkit-transform ' + dur + ' ' + easing + ' 0s,  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
+                          'transition: transform ' + dur + ' ' + easing + ' 0s,  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
+                 '-webkit-perspective: 1000;' +
+         '-webkit-backface-visibility: hidden;';
+
+      initial = '-webkit-transform: translate' + axis + '(' + dist + ');' +
+                        'transform: translate' + axis + '(' + dist + ');' +
+                          'opacity: ' + opacity + ';';
+
+      target = '-webkit-transform: translate' + axis + '(0);' +
+                       'transform: translate' + axis + '(0);' +
+                         'opacity: 1;';
       return {
         transition: transition,
         initial: initial,
