@@ -27,7 +27,7 @@ window.scrollReveal = (function( window ) {
 
 var requestAnimFrame,
     isMobile,
-    styleId,
+    bankId,
     self;
 
   /**
@@ -53,8 +53,8 @@ var requestAnimFrame,
       /**
        * prepare the style bank
        */
-      styleId = 1;
-      self.styleBank = {};
+      bankId = 1;
+      self.bank = {};
 
       /**
        * build the config object
@@ -70,7 +70,7 @@ var requestAnimFrame,
       /**
        * otherwise, get things moving
        */
-      if ( self.config.init == true ) self.init();
+      if ( self.config.run == true ) self.run();
   }
 
   scrollReveal.prototype = {
@@ -107,7 +107,7 @@ var requestAnimFrame,
        * true, init() is called during instantiation
        * false, init() must be called manually
        */
-      init: true
+      run: true
     },
 
     /**
@@ -116,11 +116,11 @@ var requestAnimFrame,
      * the DOM, manually calling the init() method will allow you to capture and prepare
      * any new elements (ie. from a template, or AJAX) for scrollReveal animation.
      */
-    init: function() {
+    run: function() {
 
       self.eventBlocked = false;
       self.elems = Array.prototype.slice.call( self.docElem.querySelectorAll( '[data-scroll-reveal]' ) );
-      self._updateStyleBank();
+      self._updateBank();
 
       window.addEventListener( 'scroll', self._eventHandler, false );
       window.addEventListener( 'resize', self._eventHandler, false );
@@ -138,30 +138,34 @@ var requestAnimFrame,
     },
 
     /**
-     * _updateStyleBank() goes through all scrollReveal elements, and captures
+     * _updateBank() goes through all scrollReveal elements, and captures
      * the values of any existing style attributes. Storing these values in turn
      * allows control over CSS specificity, without destroying existing styles.
      */
-    _updateStyleBank: function() {
+    _updateBank: function() {
 
       var id;
 
       self.elems.forEach( function( el, i ) {
-        id = el.getAttribute( 'data-sr-style-id' ); /* grab id if exists */
+        id = self._getBankId( el );
         /**
          * if no id found, assign a new one
          */
         if ( !id ) {
-          id = styleId++;
+          id = bankId++;
           el.setAttribute( 'data-sr-style-id', id );
         }
         /**
          * confirm entry in style bank
          */
-        if ( !self.styleBank[ id ] ) {
-          self.styleBank[ id ] = el.getAttribute( 'style' );
+        if ( !self.bank[ id ] ) {
+          self.bank[ id ] = { style: el.getAttribute( 'style' ), reset: self.config.reset };
         }
       });
+    },
+
+    _getBankId: function( el ) {
+      return el.getAttribute( 'data-sr-style-id' );
     },
 
     /**
@@ -253,6 +257,10 @@ var requestAnimFrame,
             parsed.over = words[i + 1];
             return;
 
+          case "reset":
+            self.bank[ self._getBankId( el ) ].reset = true;
+            return;
+
           default:
             return;
         }
@@ -264,42 +272,39 @@ var requestAnimFrame,
     _update: function( el ) {
 
       var css,
-          style;
+          bank;
 
       /**
        * retrive styles from style bank, or set to empty string
        */
-      style = self.styleBank[ el.getAttribute( 'data-sr-style-id' ) ];
-      if ( style != null ) style += ';'; else style = '';
+      bank = self.bank[ el.getAttribute( 'data-sr-style-id' ) ];
+      if ( bank.style != null ) bank.style += ';'; else bank.style = '';
 
       css = self._genCSS( el ); /* build the animation styles */
 
       if ( !el.getAttribute( 'data-sr-initialized' ) ) {
-        el.setAttribute( 'style', style + css.initial );
+        el.setAttribute( 'style', bank.style + css.initial );
         el.setAttribute( 'data-sr-initialized', true );
       }
 
       if ( !self.isElementInViewport( el, self.config.viewportFactor ) ) {
-        if ( self.config.reset ) {
-          el.setAttribute( 'style', style + css.initial + css.reset );
+        if ( self.config.reset || bank.reset ) {
+          el.setAttribute( 'style', bank.style + css.initial + css.reset );
         }
         return;
       }
 
-      if ( el.getAttribute('data-scroll-reveal-complete' ) ) return;
-
       if ( self.isElementInViewport( el, self.config.viewportFactor ) ) {
-        el.setAttribute( 'style', style + css.target + css.transition );
+        el.setAttribute( 'style', bank.style + css.target + css.transition );
     //  Without reset enabled, we can safely remove the style tag
     //  to prevent CSS specificy wars with authored CSS.
-        if ( !self.config.reset ) {
+        if ( !self.config.reset || !bank.reset ) {
           setTimeout(function () {
-            if ( style != '' ) {
-              el.setAttribute( 'style', style );
+            if ( bank.style != '' ) {
+              el.setAttribute( 'style', bank.style );
             } else {
               el.removeAttribute( 'style' );
             }
-            el.setAttribute( 'data-scroll-reveal-complete', true );
           }, css.totalDuration );
         }
       return;
@@ -307,40 +312,57 @@ var requestAnimFrame,
     },
 
     _genCSS: function( el ) {
-      var parsed = self._parse( el ),
+
+      var parsed,
           enter,
-          axis;
+          axis,
+          dist,
+          dur,
+          delay,
+          easing,
+          opacity,
 
-      if (parsed.enter) {
+          transition,
+          reset,
+          initial,
+          target;
 
-        if (parsed.enter == 'top' || parsed.enter == 'bottom') {
+      parsed = self._parse( el );
+
+      /**
+       * convert the vector origin to a CSS-friendly axis
+       */
+      if ( parsed.enter ) {
+
+        if ( parsed.enter == 'top' || parsed.enter == 'bottom' ) {
           enter = parsed.enter;
           axis = 'y';
         }
 
-        if (parsed.enter == 'left' || parsed.enter == 'right') {
+        if ( parsed.enter == 'left' || parsed.enter == 'right' ) {
           enter = parsed.enter;
           axis = 'x';
         }
 
       } else {
 
-        if (self.config.enter == 'top' || self.config.enter == 'bottom') {
+        if ( self.config.enter == 'top' || self.config.enter == 'bottom' ) {
           enter = self.config.enter
           axis = 'y';
         }
 
-        if (self.config.enter == 'left' || self.config.enter == 'right') {
+        if ( self.config.enter == 'left' || self.config.enter == 'right' ) {
           enter = self.config.enter
           axis = 'x';
         }
       }
 
-  //  After all values are parsed, let’s make sure our our
-  //  pixel distance is negative for top and left entrances.
-  //
-  //  ie. "move 25px from top" starts at 'top: -25px' in CSS.
-
+      /**
+       * after all values are parsed, let’s make sure our our
+       * pixel distance is negative for top and left entrances.
+       *
+       * ie. "move 25px from top" starts at 'top: -25px' in CSS.
+       */
       if (enter == "top" || enter == "left") {
         if (parsed.move) {
           parsed.move = "-" + parsed.move;
@@ -350,43 +372,42 @@ var requestAnimFrame,
         }
       }
 
-      var transition,
-          reset,
-          initial,
-          target,
-
-          dist    = parsed.move    || self.config.move,
-          dur     = parsed.over    || self.config.over,
-          delay   = parsed.after   || self.config.after,
-          easing  = parsed.easing  || self.config.easing,
-          opacity = parsed.opacity || self.config.opacity;
 
       /**
-       * disable delay on mobile devices, until scroll and/or touchmove events
-       * better support CSS transitions.
+       * assign values to CSS variables
        */
-      if ( self.isMobile && self.config.mobile ) { delay = 0; }
+      dist    = parsed.move     || self.config.move;
+      dur     = parsed.over     || self.config.over;
+      delay   = parsed.after    || self.config.after;
+      easing  = parsed.easing   || self.config.easing;
+      opacity = parsed.opacity  || self.config.opacity;
+
+      /**
+       * Want to disable delay on mobile devices? It might provide a better
+       * UX considering the animations are paused during scroll…
+       */
+      //if ( self.isMobile && self.config.mobile ) { delay = 0; }
 
       transition = '-webkit-transition: -webkit-transform ' + dur + ' ' + easing + ' ' + delay + ',  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
                                'transition: transform ' + dur + ' ' + easing + ' ' + delay + ', opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
                       '-webkit-perspective: 1000;' +
               '-webkit-backface-visibility: hidden;';
-
       /**
-       * The same as transition, but removing the delay for elements fading out.
+       * The same as `transition` above, but with the delay removed for reset animations
        */
       reset = '-webkit-transition: -webkit-transform ' + dur + ' ' + easing + ' 0s,  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
                           'transition: transform ' + dur + ' ' + easing + ' 0s,  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
                  '-webkit-perspective: 1000;' +
          '-webkit-backface-visibility: hidden;';
 
+
       initial = '-webkit-transform: translate' + axis + '(' + dist + ');' +
-                        'transform: translate' + axis + '(' + dist + ');' +
-                          'opacity: ' + opacity + ';';
+                          'transform: translate' + axis + '(' + dist + ');' +
+                            'opacity: ' + opacity + ';';
 
       target = '-webkit-transform: translate' + axis + '(0);' +
-                       'transform: translate' + axis + '(0);' +
-                         'opacity: 1;';
+                         'transform: translate' + axis + '(0);' +
+                           'opacity: 1;';
       return {
         transition: transition,
         initial: initial,
