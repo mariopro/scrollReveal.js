@@ -13,9 +13,9 @@
 ============================================================================*/
 
 /**
- * scrollReveal.js v0.2.0 (c) 2014 Julian Lloyd
+ * scrollReveal.js v0.2.0 (c) 2014 Julian Lloyd (@julianlloyd)
  *
- * Inspired by cbpScroller.js (c) 2014 Codrops
+ * Inspired by cbpScroller.js (c) 2014 Codrops (@crnacura)
  *
  * Licensed under the MIT license
  * http://www.opensource.org/licenses/mit-license.php
@@ -26,8 +26,7 @@ window.scrollReveal = (function( window ) {
   'use strict';
 
 var requestAnimFrame,
-    isMobile,
-    bankId,
+    serial,
     self;
 
   /**
@@ -47,31 +46,29 @@ var requestAnimFrame,
 
   function scrollReveal( userConfig ) {
 
-      self = this;
+      self         = this;
+      self.data    = {};
+      self.elems   = [];
+      self.serial  = 1;
+      self.config  = self.extend( self.defaults, userConfig );
       self.docElem = window.document.documentElement;
 
       /**
-       * prepare the style bank
-       */
-      bankId = 1;
-      self.bank = {};
-
-      /**
-       * build the config object
-       */
-      self.config = self._extend( self.defaults, userConfig );
-
-      /**
        * check for a mobile browsers, and pull the plug if on
-       * on a mobile device and config.mobile set to false
+       * a mobile device and config.mobile is currently false
        */
-      self.isMobile = self.checkMobile();
-      if ( self.isMobile && !self.config.mobile ) { return }; /* Goodbye… */
-      /**
-       * otherwise, get things moving
-       */
-      if ( self.config.run == true ) self.run();
+      if ( self.checkMobile() && !self.config.mobile ) {
+
+        return /* Goodbye… */
+
+      } else if ( self.config.run == true ) {
+
+        self.run();
+
+      }
   }
+
+
 
   scrollReveal.prototype = {
 
@@ -104,161 +101,241 @@ var requestAnimFrame,
       reset: false,
 
       /**
-       * true, init() is called during instantiation
-       * false, init() must be called manually
+       * true, run() is called during upon instantiation
+       * false, run() must be called manually
        */
       run: true
     },
 
     /**
-     * the init() method is what kicks everything into motion. If you‘re looking to
-     * use other JavaScript libraries with scrollReveal, especially ones that manipulate
-     * the DOM, manually calling the init() method will allow you to capture and prepare
-     * any new elements (ie. from a template, or AJAX) for scrollReveal animation.
+     * animate the self.elems array with a fresh query of the DOM for data-scroll-reveal attributes,
+     * binds event listeners, and then fires the animate() method to handle animation.
      */
     run: function() {
 
-      self.eventBlocked = false;
-      self.elems = Array.prototype.slice.call( self.docElem.querySelectorAll( '[data-scroll-reveal]' ) );
-      self._updateBank();
-
-      window.addEventListener( 'scroll', self._eventHandler, false );
-      window.addEventListener( 'resize', self._eventHandler, false );
-
-      self._updatePage();
-    },
-
-    _eventHandler: function( e ) {
-      if ( !self.eventBlocked ) {
-        self.eventBlocked = true;
-        requestAnimFrame(function() {
-          self._updatePage();
-        });
-      }
-    },
-
-    /**
-     * _updateBank() goes through all scrollReveal elements, and captures
-     * the values of any existing style attributes. Storing these values in turn
-     * allows control over CSS specificity, without destroying existing styles.
-     */
-    _updateBank: function() {
-
       var id;
 
-      self.elems.forEach( function( el, i ) {
-        id = self._getBankId( el );
+      self.elems = Array.prototype.slice.call( self.docElem.querySelectorAll( '[data-scroll-reveal]' ) );
+      self.elems.forEach(function ( el, i ) {
+
         /**
-         * if no id found, assign a new one
+         * i is 0 initially, so let’s bump it so we start with 1
+         */
+        i++;
+
+        id = el.getAttribute( 'data-sr-id' );
+
+        /**
+         * if id is undefined, assign a new one to self.data and
+         * to the DOM element (via the data-sr-style-id attribute)
          */
         if ( !id ) {
-          id = bankId++;
-          el.setAttribute( 'data-sr-style-id', id );
+
+          id = self.serial++;
+
+
+          self.data[ i ] = {};
+          self.data[ i ].id = id;
+
+          el.setAttribute( 'data-sr-id', id );
+
         }
+
         /**
-         * confirm entry in style bank
+         * if no style property has been set, create one using the value from
+         * the element's existing style tag — otherwise set to false
          */
-        if ( !self.bank[ id ] ) {
-          self.bank[ id ] = { style: el.getAttribute( 'style' ), reset: self.config.reset };
+        if ( !self.data[ i ].style ) {
+
+          self.data[ i ].style = el.getAttribute( 'style' );
+
+          if ( self.data[ i ].style ) {
+
+            self.data[ i ].style += ';';
+
+          } else {
+
+            self.data[ i ].style = '';
+
+          }
+
         }
-      });
-    },
 
-    _getBankId: function( el ) {
-      return el.getAttribute( 'data-sr-style-id' );
-    },
+        window.addEventListener( 'scroll', _eventHandler, false );
+        window.addEventListener( 'resize', _eventHandler, false );
 
-    /**
-     * _updatePage() is the primary event callback, and is a wrapper
-     * for the _update() method, which handles most of the heavy lifting.
-     */
-    _updatePage: function() {
-
-        self.elems.forEach(function( el, i ) {
-          self._update( el );
-        });
-        self.eventBlocked = false;
-    },
-
-    _filter: function( words ) {
-
-      var filtered  = [],
-          blacklist = [];
-
-      blacklist = [
-        "from",
-        "the",
-        "and",
-        "then",
-        "but",
-        "with"
-      ];
-
-      /**
-       * check each word in the array
-       * if the value is found in the blacklist, skip it
-       * otherwise, add the word to a new array to be returned
-       */
-      words.forEach(function( word, i ) {
-        if ( blacklist.indexOf( word ) > -1 ) { return; }
-        filtered.push( word );
       });
 
-      return filtered;
+      self.eventBlocked = false;
+
+      self.animate( self.elems );
+
     },
 
-    _parse: function( el ) {
+    animate: function( elems ) {
 
-      var words  = el.getAttribute('data-scroll-reveal').split(/[, ]+/),
+      elems.forEach(function ( el, i ) {
+
+        var id,
+            css,
+            reveal;
+
+        /**
+         * find the elements id, and set `el` to its corresponding self.data object
+         */
+        id = el.getAttribute( 'data-sr-id' );
+
+        if ( id ) {
+
+          reveal = self.data[ id ];
+
+          /**
+           * now lets check for cached styles, and generated any that are missing
+           */
+          if ( !reveal.css ) {
+            reveal.css = self.createStyles( el, reveal );
+          }
+
+          if ( !el.getAttribute( 'data-sr-initialized' ) ) {
+
+            el.setAttribute( 'style', reveal.style + reveal.css.initial );
+            el.setAttribute( 'data-sr-initialized', true );
+
+          }
+
+          /**
+           * if the element isn’t visible, check whether we should apply reset styles
+           */
+          if ( !self.isElementInViewport( el, self.config.viewportFactor ) ) {
+
+            if ( reveal.reset ) {
+
+              el.setAttribute( 'style', reveal.style + reveal.css.initial + reveal.css.reset );
+
+            }
+
+            return;
+          }
+
+          /**
+           * let’s skip any non-reseting elements that have completed their reveal
+           */
+          if ( el.getAttribute( 'data-sr-complete') ) { return; }
+
+          /**
+           * if our element is visible, apply target styles
+           * if reset is disabled for this element, restore the style
+           * attribute to it’s pre-scrollReveal state.
+           */
+          if ( self.isElementInViewport( el, self.config.viewportFactor ) ) {
+
+            el.setAttribute( 'style', reveal.style + reveal.css.target + reveal.css.transition );
+
+            if ( !reveal.reset ) {
+
+              setTimeout(function () {
+
+                if ( reveal.style !== '' ) { el.setAttribute( 'style', reveal.style ); }
+                else { el.removeAttribute( 'style' ); }
+
+                el.setAttribute( 'data-sr-complete', true ); /* complete */
+
+              }, reveal.css.totalDuration );
+            }
+
+            return;
+          }
+
+        }
+
+      });
+
+      self.eventBlocked = false;
+
+    },
+
+    parse: function( el ) {
+
+      var words  = el.getAttribute( 'data-scroll-reveal' ).split( /[, ]+/ ),
           parsed = {};
 
-      words = self._filter( words );
+      words = self.filter( words );
 
-      words.forEach(function( word, i ) {
+      words.forEach(function( keyword, i ) {
 
-        switch ( word ) {
+        /**
+         * keywords are immediately followed by a value (after parsing out any filler words)
+         * so upon finding a match, we grab the following value in the array
+         *
+         * Note: if unsupported filler words are entered, there is a chance your properties
+         * will be assigned gibberish value (so an aggressive blacklist within the filter()
+         * method should be maintained)
+         */
+        switch ( keyword ) {
+
           case "enter":
+
             parsed.enter = words[ i + 1 ];
             return;
 
           case "after":
+
             parsed.after = words[ i + 1 ];
             return;
 
           case "wait":
+
             parsed.after = words[i + 1];
             return;
 
           case "move":
+
             parsed.move = words[i + 1];
             return;
 
           case "ease":
+
             parsed.move = words[i + 1];
             parsed.ease = "ease";
             return;
 
           case "ease-in":
+
             parsed.move = words[i + 1];
             parsed.easing = "ease-in";
             return;
 
           case "ease-in-out":
+
             parsed.move = words[i + 1];
             parsed.easing = "ease-in-out";
             return;
 
           case "ease-out":
+
             parsed.move = words[i + 1];
             parsed.easing = "ease-out";
             return;
 
           case "over":
+
             parsed.over = words[i + 1];
             return;
 
+          /**
+           * make sure any reset config override is caught…
+           */
           case "reset":
-            self.bank[ self._getBankId( el ) ].reset = true;
+
+            if ( words[ i - 1 ] == 'no' ) {
+
+              parsed.reset = false;
+
+            } else {
+
+              parsed.reset = true;
+            }
+
             return;
 
           default:
@@ -266,52 +343,15 @@ var requestAnimFrame,
         }
       });
 
+      /**
+       * otherwise assign the default value
+       */
+      if ( !parsed.reset ) { parsed.reset = self.config.reset; }
+
       return parsed;
     },
 
-    _update: function( el ) {
-
-      var css,
-          bank;
-
-      /**
-       * retrive styles from style bank, or set to empty string
-       */
-      bank = self.bank[ el.getAttribute( 'data-sr-style-id' ) ];
-      if ( bank.style != null ) bank.style += ';'; else bank.style = '';
-
-      css = self._genCSS( el ); /* build the animation styles */
-
-      if ( !el.getAttribute( 'data-sr-initialized' ) ) {
-        el.setAttribute( 'style', bank.style + css.initial );
-        el.setAttribute( 'data-sr-initialized', true );
-      }
-
-      if ( !self.isElementInViewport( el, self.config.viewportFactor ) ) {
-        if ( self.config.reset || bank.reset ) {
-          el.setAttribute( 'style', bank.style + css.initial + css.reset );
-        }
-        return;
-      }
-
-      if ( self.isElementInViewport( el, self.config.viewportFactor ) ) {
-        el.setAttribute( 'style', bank.style + css.target + css.transition );
-    //  Without reset enabled, we can safely remove the style tag
-    //  to prevent CSS specificy wars with authored CSS.
-        if ( !self.config.reset || !bank.reset ) {
-          setTimeout(function () {
-            if ( bank.style != '' ) {
-              el.setAttribute( 'style', bank.style );
-            } else {
-              el.removeAttribute( 'style' );
-            }
-          }, css.totalDuration );
-        }
-      return;
-      }
-    },
-
-    _genCSS: function( el ) {
+    createStyles: function( el, reveal ) {
 
       var parsed,
           enter,
@@ -327,7 +367,12 @@ var requestAnimFrame,
           initial,
           target;
 
-      parsed = self._parse( el );
+
+      /**
+       * parse for keywords, and update our data model's reset config
+       */
+      parsed = self.parse( el );
+      reveal.reset = parsed.reset;
 
       /**
        * convert the vector origin to a CSS-friendly axis
@@ -386,28 +431,29 @@ var requestAnimFrame,
        * Want to disable delay on mobile devices? It might provide a better
        * UX considering the animations are paused during scroll…
        */
-      //if ( self.isMobile && self.config.mobile ) { delay = 0; }
+      //if ( self.checkMobile() && self.config.mobile ) { delay = 0; }
 
       transition = '-webkit-transition: -webkit-transform ' + dur + ' ' + easing + ' ' + delay + ',  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
-                               'transition: transform ' + dur + ' ' + easing + ' ' + delay + ', opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
-                      '-webkit-perspective: 1000;' +
-              '-webkit-backface-visibility: hidden;';
+                           'transition: transform '         + dur + ' ' + easing + ' ' + delay + ', opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
+                  '-webkit-perspective: 1000;' +
+          '-webkit-backface-visibility: hidden;';
+
       /**
-       * The same as `transition` above, but with the delay removed for reset animations
+       * create a duplicate transition style, but with no delay for better exit animation UX
        */
-      reset = '-webkit-transition: -webkit-transform ' + dur + ' ' + easing + ' 0s,  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
-                          'transition: transform ' + dur + ' ' + easing + ' 0s,  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
-                 '-webkit-perspective: 1000;' +
-         '-webkit-backface-visibility: hidden;';
+      reset      = '-webkit-transition: -webkit-transform ' + dur + ' ' + easing + ' 0s,  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
+                           'transition: transform '         + dur + ' ' + easing + ' 0s,  opacity ' + dur + ' ' + easing + ' ' + delay + ';' +
+                  '-webkit-perspective: 1000;' +
+          '-webkit-backface-visibility: hidden;';
 
+      initial     = '-webkit-transform: translate' + axis + '(' + dist + ');' +
+                            'transform: translate' + axis + '(' + dist + ');' +
+                              'opacity: ' + opacity + ';';
 
-      initial = '-webkit-transform: translate' + axis + '(' + dist + ');' +
-                          'transform: translate' + axis + '(' + dist + ');' +
-                            'opacity: ' + opacity + ';';
+      target      = '-webkit-transform: translate' + axis + '(0);' +
+                            'transform: translate' + axis + '(0);' +
+                              'opacity: 1;';
 
-      target = '-webkit-transform: translate' + axis + '(0);' +
-                         'transform: translate' + axis + '(0);' +
-                           'opacity: 1;';
       return {
         transition: transition,
         initial: initial,
@@ -417,6 +463,36 @@ var requestAnimFrame,
       };
     },
 
+    filter: function( words ) {
+
+      var filtered  = [],
+          blacklist = [];
+
+      blacklist = [
+        "from",
+        "the",
+        "and",
+        "then",
+        "but",
+        "with"
+      ];
+
+      /**
+       * check each word in the array
+       * if the value is found in the blacklist, skip it
+       * otherwise, add the word to a new array to be returned
+       */
+      words.forEach(function( word, i ) {
+        if ( blacklist.indexOf( word ) > -1 ) { return; }
+        filtered.push( word );
+      });
+
+      return filtered;
+    },
+
+    /**
+     * @public
+     */
     getViewportH: function() {
       var client = self.docElem['clientHeight'],
         inner = window['innerHeight'];
@@ -424,6 +500,9 @@ var requestAnimFrame,
       return (client < inner) ? inner : client;
     },
 
+    /**
+     * @public
+     */
     getOffset: function( el ) {
 
       var offsetTop = 0,
@@ -444,28 +523,26 @@ var requestAnimFrame,
       }
     },
 
-    isElementInViewport: function( el, h ) {
-      var scrolled = window.pageYOffset,
-          viewed = scrolled + self.getViewportH(),
-          elH = el.offsetHeight,
-          elTop = self.getOffset( el ).top,
-          elBottom = elTop + elH,
-          h = h || 0;
+    /**
+     * @public
+     */
+    isElementInViewport: function( el, viewportFactor ) {
 
-      return ( elTop + elH * h ) <= viewed
+      var scrolled       = window.pageYOffset,
+          elHeight       = el.offsetHeight,
+          elTop          = self.getOffset( el ).top,
+          viewed         = scrolled + self.getViewportH(),
+          elBottom       = elTop + elHeight,
+          viewportFactor = viewportFactor || 0;
+
+      return ( elTop + elHeight * viewportFactor ) <= viewed
           && ( elBottom ) >= scrolled
           || ( el.currentStyle? el.currentStyle : window.getComputedStyle( el, null ) ).position == 'fixed';
     },
 
-    _extend: function( a, b ){
-      for ( var key in b ) {
-        if ( b.hasOwnProperty( key ) ) {
-          a[ key ] = b[ key ];
-        }
-      }
-      return a;
-    },
-
+    /**
+     * @public
+     */
     checkMobile: function() {
 
       var result = false;
@@ -474,7 +551,28 @@ var requestAnimFrame,
 
       return result;
     },
+
+    extend: function( a, b ) {
+      for ( var key in b ) {
+        if ( b.hasOwnProperty( key ) ) {
+          a[ key ] = b[ key ];
+        }
+      }
+      return a;
+    },
+
   }; // end scrollReveal.prototype
 
+
+  var _eventHandler = function( e ) {
+    if ( !self.eventBlocked ) {
+      self.eventBlocked = true;
+      requestAnimFrame(function() {
+        self.animate( self.elems );
+      });
+    }
+  };
+
   return scrollReveal;
+
 })( window );
