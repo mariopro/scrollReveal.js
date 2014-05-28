@@ -25,24 +25,10 @@ window.scrollReveal = (function( window ) {
 
   'use strict';
 
-var requestAnimFrame,
+var _requestAnimFrame,
+    _eventHandler,
     serial,
     self;
-
-  /**
-   * RequestAnimationFrame polyfill
-   * @function
-   * @private
-   */
-  requestAnimFrame = (function () {
-    return window.requestAnimationFrame        ||
-           window.webkitRequestAnimationFrame  ||
-           window.mozRequestAnimationFrame     ||
-
-          function( callback ) {
-            window.setTimeout( callback, 1000 / 60 );
-          };
-  }());
 
   function scrollReveal( userConfig ) {
 
@@ -248,7 +234,7 @@ var requestAnimFrame,
 
         }
 
-      });
+      }); // end elems.forEach
 
       self.eventBlocked = false;
 
@@ -563,11 +549,25 @@ var requestAnimFrame,
 
   }; // end scrollReveal.prototype
 
+  /**
+   * RequestAnimationFrame polyfill
+   * @function
+   * @private
+   */
+  _requestAnimFrame = (function () {
+    return window.requestAnimationFrame        ||
+           window.webkitRequestAnimationFrame  ||
+           window.mozRequestAnimationFrame     ||
 
-  var _eventHandler = function( e ) {
+          function( callback ) {
+            window.setTimeout( callback, 1000 / 60 );
+          };
+  }());
+
+  _eventHandler = function( e ) {
     if ( !self.eventBlocked ) {
       self.eventBlocked = true;
-      requestAnimFrame(function() {
+      _requestAnimFrame(function() {
         self.animate( self.elems );
       });
     }
