@@ -4,7 +4,7 @@
     ___  ___ _ __ ___ | | | |__) |_____   _____  __ _| |  _ ___
    / __|/ __| '__/ _ \| | |  _  // _ \ \ / / _ \/ _` | | | / __|
    \__ \ (__| | | (_) | | | | \ \  __/\ V /  __/ (_| | |_| \__ \
-   |___/\___|_|  \___/|_|_|_|  \_\___| \_/ \___|\__,_|_(_) |___/ v.0.2.0
+   |___/\___|_|  \___/|_|_|_|  \_\___| \_/ \___|\__,_|_(_) |___/ v.0.2.0-RC.1
                                                         _/ |
                                                        |__/
 
@@ -13,7 +13,7 @@
 ============================================================================*/
 
 /**
- * scrollReveal.js v0.2.0 (c) 2014 Julian Lloyd (@julianlloyd)
+ * scrollReveal.js (c) 2014 Julian Lloyd (@julianlloyd)
  *
  * Inspired by cbpScroller.js (c) 2014 Codrops (@crnacura)
  *
@@ -47,9 +47,9 @@ var _requestAnimFrame,
 
         return /* Goodbye… */
 
-      } else if ( self.config.run == true ) {
+      } else if ( self.config.init == true ) {
 
-        self.run();
+        self.init();
 
       }
   }
@@ -87,17 +87,17 @@ var _requestAnimFrame,
       reset: false,
 
       /**
-       * true, run() is called during upon instantiation
-       * false, run() must be called manually
+       * true, init() is called during upon instantiation
+       * false, init() must be called manually
        */
-      run: true
+      init: true
     },
 
     /**
      * animate the self.elems array with a fresh query of the DOM for data-scroll-reveal attributes,
      * binds event listeners, and then fires the animate() method to handle animation.
      */
-    run: function() {
+    init: function() {
 
       var id;
 
@@ -167,6 +167,11 @@ var _requestAnimFrame,
             reveal;
 
         /**
+         * first, let’s skip any (non-reseting) elements that have completed their reveal
+         */
+        if ( el.getAttribute( 'data-sr-complete' ) ) { return; }
+
+        /**
          * find the elements id, and set `el` to its corresponding self.data object
          */
         id = el.getAttribute( 'data-sr-id' );
@@ -174,6 +179,7 @@ var _requestAnimFrame,
         if ( id ) {
 
           reveal = self.data[ id ];
+
 
           /**
            * now lets check for cached styles, and generated any that are missing
@@ -203,20 +209,18 @@ var _requestAnimFrame,
             return;
           }
 
-          /**
-           * let’s skip any non-reseting elements that have completed their reveal
-           */
-          if ( el.getAttribute( 'data-sr-complete') ) { return; }
 
           /**
            * if our element is visible, apply target styles
-           * if reset is disabled for this element, restore the style
-           * attribute to it’s pre-scrollReveal state.
            */
           if ( self.isElementInViewport( el, self.config.viewportFactor ) ) {
 
             el.setAttribute( 'style', reveal.style + reveal.css.target + reveal.css.transition );
 
+            /**
+             * and if reset is disabled for this element, restore the style attribute
+             * to it’s pre-scrollReveal state after the animation completes
+             */
             if ( !reveal.reset ) {
 
               setTimeout(function () {
@@ -253,9 +257,8 @@ var _requestAnimFrame,
          * keywords are immediately followed by a value (after parsing out any filler words)
          * so upon finding a match, we grab the following value in the array
          *
-         * Note: if unsupported filler words are entered, there is a chance your properties
-         * will be assigned gibberish value (so an aggressive blacklist within the filter()
-         * method should be maintained)
+         * Note: if unsupported words are entered, there is the chance your properties
+         * will be assigned gibberish value
          */
         switch ( keyword ) {
 
@@ -271,41 +274,41 @@ var _requestAnimFrame,
 
           case "wait":
 
-            parsed.after = words[i + 1];
+            parsed.after = words[ i + 1 ];
             return;
 
           case "move":
 
-            parsed.move = words[i + 1];
+            parsed.move = words[ i + 1 ];
             return;
 
           case "ease":
 
-            parsed.move = words[i + 1];
+            parsed.move = words[ i + 1 ];
             parsed.ease = "ease";
             return;
 
           case "ease-in":
 
-            parsed.move = words[i + 1];
+            parsed.move = words[ i + 1 ];
             parsed.easing = "ease-in";
             return;
 
           case "ease-in-out":
 
-            parsed.move = words[i + 1];
+            parsed.move = words[ i + 1 ];
             parsed.easing = "ease-in-out";
             return;
 
           case "ease-out":
 
-            parsed.move = words[i + 1];
+            parsed.move = words[ i + 1 ];
             parsed.easing = "ease-out";
             return;
 
           case "over":
 
-            parsed.over = words[i + 1];
+            parsed.over = words[ i + 1 ];
             return;
 
           /**
@@ -330,9 +333,9 @@ var _requestAnimFrame,
       });
 
       /**
-       * otherwise assign the default value
+       * if no reset keyword is found, assign the value specified in the config
        */
-      if ( !parsed.reset ) { parsed.reset = self.config.reset; }
+      if ( typeof parsed.reset === 'undefined' ) { parsed.reset = self.config.reset; }
 
       return parsed;
     },
@@ -394,8 +397,8 @@ var _requestAnimFrame,
        *
        * ie. "move 25px from top" starts at 'top: -25px' in CSS.
        */
-      if (enter == "top" || enter == "left") {
-        if (parsed.move) {
+      if ( enter == "top" || enter == "left" ) {
+        if ( parsed.move ) {
           parsed.move = "-" + parsed.move;
         }
         else {
@@ -414,8 +417,8 @@ var _requestAnimFrame,
       opacity = parsed.opacity  || self.config.opacity;
 
       /**
-       * Want to disable delay on mobile devices? It might provide a better
-       * UX considering the animations are paused during scroll…
+       * Want to disable delay on mobile devices? It might provide a better UX
+       * considering the animations are paused during scroll… uncomment the line below
        */
       //if ( self.checkMobile() && self.config.mobile ) { delay = 0; }
 
@@ -445,7 +448,7 @@ var _requestAnimFrame,
         initial: initial,
         target: target,
         reset: reset,
-        totalDuration: ((parseFloat(dur) + parseFloat(delay)) * 1000)
+        totalDuration: ( ( parseFloat( dur ) + parseFloat( delay ) ) * 1000 )
       };
     },
 
@@ -455,12 +458,13 @@ var _requestAnimFrame,
           blacklist = [];
 
       blacklist = [
-        "from",
-        "the",
-        "and",
-        "then",
-        "but",
-        "with"
+        'a',
+        'and',
+        'but',
+        'from',
+        'the',
+        'then',
+        'with',
       ];
 
       /**
@@ -476,31 +480,24 @@ var _requestAnimFrame,
       return filtered;
     },
 
-    /**
-     * @public
-     */
     getViewportH: function() {
-      var client = self.docElem['clientHeight'],
-        inner = window['innerHeight'];
 
-      return (client < inner) ? inner : client;
+      var client = self.docElem[ 'clientHeight' ],
+           inner = window[ 'innerHeight' ];
+
+      return ( client < inner ) ? inner : client;
     },
 
-    /**
-     * @public
-     */
     getOffset: function( el ) {
 
       var offsetTop = 0,
           offsetLeft = 0;
 
       do {
-        if ( !isNaN( el.offsetTop ) ) {
-          offsetTop += el.offsetTop;
-        }
-        if ( !isNaN( el.offsetLeft ) ) {
-          offsetLeft += el.offsetLeft;
-        }
+
+        if ( !isNaN( el.offsetTop ) ) { offsetTop += el.offsetTop; }
+        if ( !isNaN( el.offsetLeft ) ) { offsetLeft += el.offsetLeft; }
+
       } while ( el = el.offsetParent )
 
       return {
@@ -509,16 +506,15 @@ var _requestAnimFrame,
       }
     },
 
-    /**
-     * @public
-     */
     isElementInViewport: function( el, viewportFactor ) {
 
       var scrolled       = window.pageYOffset,
+
           elHeight       = el.offsetHeight,
           elTop          = self.getOffset( el ).top,
-          viewed         = scrolled + self.getViewportH(),
           elBottom       = elTop + elHeight,
+
+          viewed         = scrolled + self.getViewportH(),
           viewportFactor = viewportFactor || 0;
 
       return ( elTop + elHeight * viewportFactor ) <= viewed
@@ -526,9 +522,6 @@ var _requestAnimFrame,
           || ( el.currentStyle? el.currentStyle : window.getComputedStyle( el, null ) ).position == 'fixed';
     },
 
-    /**
-     * @public
-     */
     checkMobile: function() {
 
       var result = false;
