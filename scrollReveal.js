@@ -47,8 +47,8 @@ window.scrollReveal = (function (window) {
 
   function scrollReveal(options) {
 
-      this.docElem = window.document.documentElement;
       this.options = this.extend(this.defaults, options);
+      this.docElem = this.options.elem;
       this.styleBank = {};
 
       if (this.options.init == true) this.init();
@@ -74,7 +74,8 @@ window.scrollReveal = (function (window) {
       reset: false,
 
   // if true, scrollReveal.init() is automaticaly called upon instantiation
-      init: true
+      init: true,
+	  elem: window.document.documentElement
     },
 
     /*=============================================================================*/
@@ -127,8 +128,13 @@ window.scrollReveal = (function (window) {
       };
 
       // captureScroll
-      window.addEventListener('scroll', scrollHandler, false);
-      window.addEventListener('resize', resizeHandler, false);
+      if (this.docElem == window.document.documentElement) {
+			window.addEventListener('scroll', scrollHandler, false);
+			window.addEventListener('resize', resizeHandler, false);
+		}
+		else {
+			this.docElem.addEventListener('scroll', scrollHandler, false);
+		}
     },
 
     /*=============================================================================*/
@@ -352,7 +358,10 @@ window.scrollReveal = (function (window) {
       var client = this.docElem['clientHeight'],
         inner = window['innerHeight'];
 
-      return (client < inner) ? inner : client;
+      if (this.docElem == window.document.documentElement)
+                return (client < inner) ? inner : client;
+            else
+                return client;
     },
 
     getOffset : function(el) {
@@ -375,8 +384,10 @@ window.scrollReveal = (function (window) {
     },
 
     isElementInViewport : function(el, h) {
-      var scrolled = window.pageYOffset,
-          viewed = scrolled + this.getViewportH(),
+      var scrolled = this.docElem.scrollTop + this.docElem.offsetTop;
+		if (this.docElem == window.document.documentElement)scrolled = window.pageYOffset;
+		var
+			viewed = scrolled + this.getViewportH(),
           elH = el.offsetHeight,
           elTop = this.getOffset(el).top,
           elBottom = elTop + elH,
