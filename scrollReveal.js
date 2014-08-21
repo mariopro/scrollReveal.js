@@ -63,6 +63,7 @@ window.scrollReveal = (function (window) {
       over:    '0.66s',
       easing:  'ease-in-out',
       opacity: 0,
+      complete: function() {},
 
   //  if 0, the element is considered in the viewport as soon as it enters
   //  if 1, the element is considered in the viewport when it's fully visible
@@ -229,6 +230,7 @@ window.scrollReveal = (function (window) {
 
     update: function (el) {
 
+      var that = this;
       var css   = this.genCSS(el);
       var style = this.styleBank[el.getAttribute("data-scroll-reveal-id")];
 
@@ -260,6 +262,7 @@ window.scrollReveal = (function (window) {
               el.removeAttribute('style');
             }
             el.setAttribute('data-scroll-reveal-complete',true);
+            that.options.complete(el);
           }, css.totalDuration);
         }
       return;
