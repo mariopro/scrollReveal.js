@@ -62,7 +62,7 @@ Getting Started
 ---------------
 #### Keywords and Values
 <br><br>
-**keyword:** `enter` — Controls the vector origin of your animation.
+**keyword:** `enter` — Controls the vector origin of your animation.<br>
 **value:** `top` | `right` | `bottom` | `left`<br><br>
 *Example:*
 ```html
@@ -168,7 +168,7 @@ The `scrollReveal.init()` method checks the DOM for all elements with `data-scro
   <script src='js/scrollReveal.min.js'></script>
   <script>
 
-     window.scrollReveal = new scrollReveal( {init: false} );
+     window.scrollReveal = new scrollReveal( { init: false } );
 
     // Here you might load another library, or query an API...
     // Now we initialize scrollReveal:
