@@ -200,6 +200,7 @@ var _requestAnimFrame
            * now lets check for cached styles, and generated any that are missing
            */
           if ( !reveal.css ) {
+
             reveal.css = self.createStyles( el, reveal )
           }
 
@@ -240,8 +241,14 @@ var _requestAnimFrame
 
               setTimeout(function () {
 
-                if ( reveal.style !== '' ) { el.setAttribute( 'style', reveal.style ) }
-                else { el.removeAttribute( 'style' ) }
+                if ( reveal.style !== '' ) {
+
+                  el.setAttribute( 'style', reveal.style )
+
+                } else {
+
+                  el.removeAttribute( 'style' )
+                }
 
                 el.setAttribute( 'data-sr-complete', true ) /* complete */
 
@@ -387,11 +394,13 @@ var _requestAnimFrame
       if ( parsed.enter ) {
 
         if ( parsed.enter == 'top' || parsed.enter == 'bottom' ) {
+
           enter = parsed.enter
           axis = 'y'
         }
 
         if ( parsed.enter == 'left' || parsed.enter == 'right' ) {
+
           enter = parsed.enter
           axis = 'x'
         }
@@ -399,11 +408,13 @@ var _requestAnimFrame
       } else {
 
         if ( self.config.enter == 'top' || self.config.enter == 'bottom' ) {
+
           enter = self.config.enter
           axis = 'y'
         }
 
         if ( self.config.enter == 'left' || self.config.enter == 'right' ) {
+
           enter = self.config.enter
           axis = 'x'
         }
@@ -416,10 +427,14 @@ var _requestAnimFrame
        * ie. "move 25px from top" starts at 'top: -25px' in CSS.
        */
       if ( enter == "top" || enter == "left" ) {
+
         if ( parsed.move ) {
+
           parsed.move = "-" + parsed.move
+
         }
         else {
+
           parsed.move = "-" + self.config.move
         }
       }
@@ -491,7 +506,12 @@ var _requestAnimFrame
        * otherwise, add the word to a new array to be returned
        */
       words.forEach(function( word, i ) {
-        if ( blacklist.indexOf( word ) > -1 ) { return }
+
+        if ( blacklist.indexOf( word ) > -1 ) {
+
+          return
+        }
+
         filtered.push( word )
       })
 
@@ -501,15 +521,15 @@ var _requestAnimFrame
     getViewportH: function() {
 
       var client = self.docElem[ 'clientHeight' ]
-        , inner = window[ 'innerHeight' ]
+        , inner  = window[ 'innerHeight' ]
 
       return ( client < inner ) ? inner : client
     },
 
     getOffset: function( el ) {
 
-      var offsetTop = 0,
-          offsetLeft = 0
+      var offsetTop  = 0
+        , offsetLeft = 0
 
       do {
 

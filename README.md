@@ -13,7 +13,6 @@ What’s new? See the **[Change Log](https://github.com/julianlloyd/scrollReveal
 Installation
 ------------
 
-
 Download and unzip [master.zip](https://github.com/julianlloyd/scrollReveal.js/archive/master.zip) and copy `scrollReveal.min.js` into your JavaScript directory. Include the file in your project, and instantiate a new scrollReveal object.
 
 *Example:*
@@ -31,8 +30,10 @@ Download and unzip [master.zip](https://github.com/julianlloyd/scrollReveal.js/a
 - GitHub — `git clone https://github.com/julianlloyd/scrollReveal.js.git`
 - Bower — `bower install scrollReveal.js`
 <br><br><br><br>
+
 Basic Usage
 -----------
+
 Just add a `data-scroll-reveal` attribute to your element(s), and scrollReveal.js will automatically reveal them as they enter the viewport.
 
 *Example:*
