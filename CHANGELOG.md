@@ -1,45 +1,48 @@
-###### scrollReveal.js Changelog
+0.1.3
+------
+###### 5/26/14
+- Add support for customizing starting element `opacity`. ([#33](https://github.com/julianlloyd/scrollReveal.js/pull/33))
+- Implement `requestAnimationFrame`. ([#46](https://github.com/julianlloyd/scrollReveal.js/pull/46))
+- Refactor the scrollReveal `styleBank`. ([#38](https://github.com/julianlloyd/scrollReveal.js/pull/38))
 
-v0.1.2   March 13th, 2014
--------------------------
+0.1.2
+-----
+###### 3/13/14
+- Add support for elements with `position: fixed`. ([#35](https://github.com/julianlloyd/scrollReveal.js/pull/35))
+- Revise `genCSS()` method to create less greedy styles. ([#37](https://github.com/julianlloyd/scrollReveal.js/pull/37))
 
-- Add support for elements with `position: fixed` (See issue [#35](https://github.com/julianlloyd/scrollReveal.js/pull/35))
-- Revise `genCSS()` method to create less greedy styles. (See issue [#37](https://github.com/julianlloyd/scrollReveal.js/pull/37))
+0.1.1
+------
+###### 3/6/14
+- Fixed a serious bug with `enter top` and `enter left` not correctly recognizing the pixel distance declared with the `move` keyword. ([#13](https://github.com/julianlloyd/scrollReveal.js/issues/13), [#31](https://github.com/julianlloyd/scrollReveal.js/issues/31))
 
-v0.1.1   March 6th, 2014
-------------------------
-
-- Fixed a serious bug with `enter top` and `enter left` not correctly recognizing the pixel distance declared with the `move` keyword. **Fixes #13 and #31** (Thanks for catching this [Sherban](https://github.com/sherban1988) and [Danycerone](https://github.com/damycerone).)
-
-v0.1.0   march 5th, 2014
-------------------------
-
+0.1.0
+------
+###### 3/5/14
 - scrollReveal.js now has a `dist` folder containing the AMD/CommonJS compatibile library.
 - [Gulp](http://gulpjs.com/) has been integrated, facilitating the build process.
-- Basic testing using [Testling](https://ci.testling.com/) has been put in place.
+- Basic testing using [Testling](https://ci.testling.com/) has been put in place. *(Anyone care to take this further?)*
 
-### Breaking Changes
+### Breaking Change
 
-- scrollReveal is now implemented using the `data-scroll-reveal` attribute, **NOT** `data-scrollReveal`.
+- ~~scrollReveal is now implemented using the `data-scroll-reveal` attribute, **NOT** `data-scrollReveal`.~~ (Updated again in [0.2.0](https://github.com/julianlloyd/scrollReveal.js/blob/master/CHANGELOG.md#v020))
 
-v0.0.4  February 28th, 2014
----------------------------
-
-- scrollReveal no longer destroys the existing `style` attribute on revealed elements, but instead, now appends the necessary reveal animation styles after any existing styles. **(Fixes #18)**
+0.0.4
+------
+###### 2/28/14
+- scrollReveal no longer destroys the existing `style` attribute on revealed elements, but instead, now appends the necessary reveal animation styles after any existing styles. ([#18](https://github.com/julianlloyd/scrollReveal.js/issues/13))
 
 >**Note:** scrollReveal will still override any existing transition or transform in the `style` attribute.
 
-v0.0.3  February 22th, 2014
----------------------------
+0.0.3
+-----
+###### 2/22/14
+- Removed unnecessary styles (with `-moz-` & `-o-`) from css transitions & transforms
+- Added top-line comment, intending it to be kept after minification
 
-- removed unnecessary styles (with `-moz-` & `-o-`) from css transitions & transforms
-- added top-line comment, intending it to be kept after minification
-
-v0.0.2  February 13th, 2014
----------------------------
-
-- Added CHANGELOG
-- Improved README
+0.0.2
+------
+###### 2/13/14
 
 ### What’s New
 
@@ -63,21 +66,21 @@ You can now pass your own starting defaults object to the scrollReveal construct
 ```html
 <script>
 
-      // The starting defaults.
-      var config = {
-              enter: 'bottom',
-              move: '0',
-              over: '0.66s',
-              delay: '0s',
-              easing: 'ease-in-out',
-              viewportFactor: 0.33,
-              reset: false,
-              init: true
-            };
+    // The starting defaults.
+    var config = {
+            enter: 'bottom',
+            move: '0',
+            over: '0.66s',
+            delay: '0s',
+            easing: 'ease-in-out',
+            viewportFactor: 0.33,
+            reset: false,
+            init: true
+          };
 
-      window.scrollReveal = new scrollReveal( config );
+    window.scrollReveal = new scrollReveal( config );
 
-  </script>
+</script>
 ```
 #### Replay Reveal Animations
 Due to popular demand, the `reset` keyword was added. Now, you can configure your animations to replay every time they enter the viewport:
