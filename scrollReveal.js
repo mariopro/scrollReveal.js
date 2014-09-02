@@ -30,13 +30,13 @@ window.scrollReveal = (function( window ) {
     , serial
     , self
 
-  function scrollReveal( userConfig ) {
+  function scrollReveal( config ) {
 
       self         = this
       self.data    = {}
       self.elems   = []
       self.serial  = 1
-      self.config  = self.extend( self.defaults, userConfig )
+      self.config  = self.extend( self.defaults, config )
       self.docElem = self.config.elem
 
       /**
@@ -87,6 +87,11 @@ window.scrollReveal = (function( window ) {
       reset: false,
 
       /**
+       * autostart triggers self.start() after first .init()
+       */
+      autostart: true,
+
+      /**
        * true, init() is called during upon instantiation
        * false, init() must be called manually
        */
@@ -96,9 +101,7 @@ window.scrollReveal = (function( window ) {
        * Document is the default parent element, but this can be changed
        * in the config object; e.g.:
        *
-       *   new scrollReveal({ parent: document.getElementById( 'sr-container' ) })
-       *
-       * See #68 Support inside overflown element
+       *   new scrollReveal({ elem: document.getElementById( 'sr-container' ) })
        */
       elem: window.document.documentElement
     },
