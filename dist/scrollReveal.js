@@ -80,22 +80,19 @@ window.scrollReveal = (function( window ) {
       opacity: 0,
 
       /**
-       * true, enables scrollReveal on mobile devices
-       * false, disabled scrollReveal on mobile devices
+       * Callback function that fires after an element finishes its animation.
+       *
+       * NOTE: animations that reset do not complete.
        */
-      mobile: false,
+      complete: function( el ) {},
 
       /**
-       * 1, the element is considered in the viewport when it's fully visible
-       * 0, the element is considered in the viewport as soon as it enters
+       * <HTML> is the default parent element, but this can be changed
+       * in the config object; e.g.:
+       *
+       *   new scrollReveal({ elem: document.getElementById( 'sr-container' ) })
        */
-      viewportFactor: 0.4,
-
-      /**
-       * true, animations occur each time an element enters the viewport
-       * false, animations occur only once
-       */
-      reset: false,
+      elem: window.document.documentElement,
 
       /**
        * true, init() is called during upon instantiation
@@ -104,12 +101,22 @@ window.scrollReveal = (function( window ) {
       init: true,
 
       /**
-       * Document is the default parent element, but this can be changed
-       * in the config object; e.g.:
-       *
-       *   new scrollReveal({ elem: document.getElementById( 'sr-container' ) })
+       * true, enables scrollReveal on mobile devices
+       * false, disabled scrollReveal on mobile devices
        */
-      elem: window.document.documentElement
+      mobile: false,
+
+      /**
+       * true, animations occur each time an element enters the viewport
+       * false, animations occur only once
+       */
+      reset: false,
+
+      /**
+       * 1, the element is considered in the viewport when it's fully visible
+       * 0, the element is considered in the viewport as soon as it enters
+       */
+      viewportFactor: 0.4
     },
 
     /**
@@ -246,7 +253,11 @@ window.scrollReveal = (function( window ) {
                   el.removeAttribute( 'style' )
                 }
 
-                el.setAttribute( 'data-sr-complete', true ) /* complete */
+                /**
+                 * animation complete, fire callback...
+                 */
+                el.setAttribute( 'data-sr-complete', true )
+                self.config.complete( el )
 
               }, data.css.totalDuration )
             }
